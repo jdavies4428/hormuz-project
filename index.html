@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iran War: Strait of Hormuz Impact</title>
+<meta name="description" content="Interactive dashboard: 20M b/d of oil at risk if Iran closes the Strait of Hormuz. Live prices, bypass capacity, price scenarios, and strategic reserve analysis.">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Iran War: Strait of Hormuz Impact">
+<meta property="og:description" content="20M b/d at risk — 20% of global oil. Live Brent/WTI/TTF prices, OPEC+ spare capacity, bypass infrastructure, strategic reserves, and closure scenarios.">
+<meta property="og:image" content="thumbnail.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Iran War: Strait of Hormuz Impact">
+<meta name="twitter:description" content="20M b/d at risk — 20% of global oil. Live crude prices, bypass capacity, strategic reserves, refinery exposure, and closure scenario modeling.">
+<meta name="twitter:image" content="thumbnail.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --panel: #0d0f18;
+    --border: #1b2133;
+    --accent: #e63946;
+    --gold: #f4a261;
+    --teal: #2a9d8f;
+    --blue: #457b9d;
+    --text: #c8cdd8;
+    --muted: #5a6278;
+    --white: #eef0f7;
+    --warn: #ff6b35;
+    --green: #52b788;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: 'IBM Plex Sans', sans-serif; color: var(--text); }
+
+  .header {
+    height: 68px; background: #080a12;
+    border-bottom: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; flex-shrink: 0;
+  }
+  .breaking-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; font-weight: 600; letter-spacing: 2px;
+    padding: 2px 9px; border-radius: 2px; margin-right: 14px;
+  }
+  .breaking-badge::before { content:''; width:6px; height:6px; background:#fff; border-radius:50%; animation:blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  .main-title { font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:2px; color:var(--white); line-height:1; }
+  .main-title span { color:var(--accent); }
+  .subtitle { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:.8px; margin-top:2px; text-transform:uppercase; }
+  .datestamp { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gold); letter-spacing:2px; }
+  .source-line { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); }
+
+  .ticker { height:26px; background:var(--accent); display:flex; align-items:center; overflow:hidden; flex-shrink:0; }
+  .ticker-label { background:#7a0000; color:#fff; font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700; letter-spacing:2px; padding:0 12px; height:100%; display:flex; align-items:center; flex-shrink:0; }
+  .ticker-track { flex:1; overflow:hidden; }
+  .ticker-inner { display:flex; animation:scroll 120s linear infinite; white-space:nowrap; }
+  .ticker-inner span { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; font-weight:600; padding:0 30px; }
+  .sep { color:rgba(255,255,255,.35) !important; padding:0 4px !important; }
+  @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+  .layout { display:flex; height:calc(100vh - 94px); }
+
+  .panel { width:280px; flex-shrink:0; display:flex; flex-direction:column; overflow-y:auto; background:var(--panel); }
+  .panel::-webkit-scrollbar { width:2px; }
+  .panel::-webkit-scrollbar-thumb { background:var(--border); }
+  .panel-l { border-right:1px solid var(--border); }
+  .panel-r { border-left:1px solid var(--border); }
+
+  .sec { padding:13px 15px; border-bottom:1px solid var(--border); }
+  .sec-label { font-family:'IBM Plex Mono',monospace; font-size:7.5px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
+  .sec-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .bignum { font-family:'Bebas Neue',sans-serif; font-size:44px; color:var(--white); line-height:1; }
+  .bignum .u { font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--muted); vertical-align:top; margin-top:7px; display:inline-block; }
+  .note { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--muted); margin-top:2px; }
+  .src { font-size:7.5px; color:var(--muted); opacity:.7; }
+
+  .bar-row { margin-bottom:7px; }
+  .bar-top { display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px; }
+  .bar-val { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--gold); }
+  .bar-bg { height:4px; background:rgba(255,255,255,.06); border-radius:2px; overflow:hidden; }
+  .bar-fg { height:4px; border-radius:2px; width:0; transition:width 1.3s cubic-bezier(.4,0,.2,1); }
+
+  .donut-wrap { display:flex; gap:12px; align-items:center; }
+  .leg { flex:1; }
+  .leg-row { display:flex; align-items:center; gap:6px; font-size:9.5px; margin-bottom:5px; }
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .leg-pct { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--gold); margin-left:auto; }
+
+  .pipe { display:grid; grid-template-columns:1fr auto auto; gap:5px; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:9.5px; }
+  .pipe-cap { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--gold); white-space:nowrap; }
+  .badge { font-size:7.5px; font-weight:700; letter-spacing:.8px; padding:2px 5px; border-radius:2px; text-transform:uppercase; }
+  .b-on  { background:rgba(82,183,136,.2); color:var(--green); }
+  .b-lim { background:rgba(244,162,97,.2); color:var(--gold); }
+  .b-off { background:rgba(230,57,70,.15); color:var(--accent); }
+
+  .alert { padding:8px 10px; border-left:2px solid var(--accent); background:rgba(230,57,70,.06); margin-bottom:6px; border-radius:0 3px 3px 0; }
+  .alert.gold { border-color:var(--gold); background:rgba(244,162,97,.06); }
+  .alert.teal { border-color:var(--teal); background:rgba(42,157,143,.06); }
+  .alert-t { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+  .alert-b { font-size:9.5px; color:var(--text); line-height:1.45; }
+  .alert-b strong { color:var(--white); }
+
+  .tl { position:relative; padding-left:13px; }
+  .tl::before { content:''; position:absolute; left:4px; top:6px; bottom:0; width:1px; background:var(--border); }
+  .tl-item { position:relative; margin-bottom:9px; }
+  .tl-dot { position:absolute; left:-12px; top:4px; width:7px; height:7px; border-radius:50%; }
+  .tl-time { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); }
+  .tl-text { font-size:9.5px; color:var(--text); line-height:1.4; margin-top:1px; }
+  .tl-live .tl-time { color:var(--accent); font-weight:700; font-size:8px; }
+  .tl-live .tl-text { color:var(--white); font-weight:600; }
+
+  .sg { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .sc { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:3px; padding:7px 9px; }
+  .sc .v { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--white); line-height:1; }
+  .sc .l { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); margin-top:1px; text-transform:uppercase; }
+
+  .bypass-callout { margin-top:9px; padding:8px 10px; background:rgba(230,57,70,.08); border:1px solid rgba(230,57,70,.2); border-radius:3px; }
+  .bypass-callout .bv { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--accent); line-height:1; }
+  .bypass-callout .bu { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+  .bypass-callout .bs { font-size:9.5px; color:var(--muted); margin-top:2px; }
+
+  .map-wrap { flex:1; position:relative; }
+  #map { width:100%; height:100%; }
+
+  .map-legend {
+    position:absolute; bottom:14px; left:10px; z-index:1000;
+    background:rgba(8,10,18,.9); border:1px solid var(--border);
+    border-radius:4px; padding:9px 13px; backdrop-filter:blur(12px); min-width:175px;
+  }
+  .ml-title { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; }
+  .ml-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:9.5px; }
+  .ml-line { width:22px; height:2px; flex-shrink:0; }
+  .ml-dotl { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+  /* Leaflet dark overrides */
+  .leaflet-container { background:#07090f !important; }
+  .leaflet-control-zoom { border:1px solid var(--border) !important; border-radius:3px !important; }
+  .leaflet-control-zoom a { background:var(--panel) !important; color:var(--text) !important; border-bottom:1px solid var(--border) !important; font-weight:400 !important; }
+  .leaflet-control-zoom a:hover { background:var(--border) !important; color:var(--white) !important; }
+  .leaflet-control-attribution { background:rgba(7,9,15,.75) !important; color:var(--muted) !important; font-size:7px !important; }
+  .leaflet-control-attribution a { color:var(--muted) !important; }
+  .leaflet-popup-content-wrapper { background:rgba(8,10,18,.92) !important; color:var(--text) !important; border:1px solid var(--border) !important; border-radius:4px !important; box-shadow:none !important; }
+  .leaflet-popup-tip { background:rgba(8,10,18,.92) !important; }
+
+  .map-tip { font-family:'IBM Plex Mono',monospace; font-size:10px; }
+  .map-tip strong { color:var(--white); font-size:11px; display:block; margin-bottom:2px; font-family:'IBM Plex Mono',monospace; }
+  .tip-gold { color:var(--gold); }
+  .tip-red { color:var(--accent); }
+  .tip-blue { color:#457b9d; }
+  .tip-green { color:var(--green); }
+  .tip-teal { color:var(--teal); }
+  .tip-orange { color:var(--warn); }
+
+  @keyframes pulse-ring {
+    0%   { transform:scale(.5); opacity:.9; }
+    100% { transform:scale(3); opacity:0; }
+  }
+  @keyframes pulse-ring2 {
+    0%   { transform:scale(.5); opacity:.6; }
+    100% { transform:scale(3); opacity:0; }
+  }
+
+  /* ── NEW: Live Price Ticker ── */
+  .live-prices { display:flex; gap:6px; margin-bottom:8px; }
+  .lp-card { flex:1; background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:3px; padding:6px 8px; }
+  .lp-card.lp-loading { opacity:.5; }
+  .lp-ticker { font-family:'IBM Plex Mono',monospace; font-size:7px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .lp-price { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--white); line-height:1.1; margin-top:1px; }
+  .lp-change { font-family:'IBM Plex Mono',monospace; font-size:8.5px; font-weight:600; margin-top:1px; }
+  .lp-change.up { color:var(--green); }
+  .lp-change.down { color:var(--accent); }
+  .lp-change.flat { color:var(--muted); }
+  .lp-updated { font-family:'IBM Plex Mono',monospace; font-size:7px; color:var(--muted); margin-top:6px; display:flex; align-items:center; gap:5px; }
+  .lp-dot { width:5px; height:5px; border-radius:50%; background:var(--green); animation:blink 2s infinite; }
+  .lp-dot.stale { background:var(--gold); }
+  .lp-dot.error { background:var(--accent); animation:none; }
+
+  /* ── NEW: Price Scenario ── */
+  .ps { background:rgba(255,255,255,.025); border:1px solid var(--border); border-radius:3px; padding:7px 9px; margin-bottom:5px; }
+  .ps-label { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+  .ps-prices { display:flex; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text); }
+  .ps-prices strong { font-size:12px; }
+  .ps-note { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); margin-top:3px; }
+  .ps-pre { border-color:var(--border); }
+  .ps-mid { border-color:rgba(244,162,97,.3); }
+  .ps-high { border-color:rgba(230,57,70,.3); background:rgba(230,57,70,.04); }
+  .ps-ext { border-color:rgba(255,60,60,.4); background:rgba(255,60,60,.06); }
+  .contango-box { margin-top:8px; padding:6px 9px; background:rgba(244,162,97,.06); border:1px solid rgba(244,162,97,.15); border-radius:3px; }
+  .contango-box .cb-label { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--gold); text-transform:uppercase; letter-spacing:1px; }
+  .contango-box .cb-text { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--muted); margin-top:2px; }
+
+  /* ── NEW: SPR rows ── */
+  .spr-row { display:grid; grid-template-columns:1fr auto auto; gap:6px; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:9.5px; }
+  .spr-val { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--text); }
+  .spr-days { font-family:'IBM Plex Mono',monospace; font-size:8.5px; color:var(--gold); font-weight:600; }
+
+  /* ── NEW: Precedent rows ── */
+  .precedent { padding:6px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .prec-header { display:flex; justify-content:space-between; align-items:center; }
+  .prec-event { font-size:10px; color:var(--white); font-weight:600; }
+  .prec-impact { font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; }
+  .prec-detail { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); margin-top:2px; }
+
+  /* ── NEW: Refinery rows ── */
+  .ref-row { display:grid; grid-template-columns:1fr auto; gap:4px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:9px; }
+  .ref-cap { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--gold); text-align:right; }
+  .ref-note { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); grid-column:1/-1; }
+
+  /* ── NEW: Timeframe scenario rows ── */
+  .ts-row { padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .ts-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+  .ts-scenario { font-size:10px; color:var(--white); font-weight:600; }
+  .ts-time { font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700; }
+  .ts-detail { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center">
+    <span class="breaking-badge">Breaking</span>
+    <div>
+      <div class="main-title">IRAN WAR: <span>STRAIT OF HORMUZ</span> IMPACT</div>
+      <div class="subtitle">US &amp; Israel launch joint military strikes · Iran retaliates across the Middle East</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="datestamp">February 28, 2026</div>
+    <div class="source-line">EIA · IEA · Vortexa · S&amp;P Global Platts · Lloyd's · ONI · AP · Reuters · Al Jazeera</div>
+  </div>
+</div>
+
+<div class="ticker">
+  <div class="ticker-label">ASSESSMENT</div>
+  <div class="ticker-track"><div class="ticker-inner" id="ticker-inner">
+    <span>Hormuz: 20M b/d at risk = 20% of global oil consumption + 27% of seaborne trade (EIA)</span>
+    <span class="sep">///</span>
+    <span>OPEC+ spare capacity only ~3.5M b/d — cannot offset a full Hormuz closure (EIA 2024)</span>
+    <span class="sep">///</span>
+    <span>Bypass capacity: only ~2.6M b/d available — 13% of Hormuz volume (S&amp;P Platts)</span>
+    <span class="sep">///</span>
+    <span>84% of Hormuz crude destined for Asia · China/India/Japan/S.Korea = 69% (EIA 2024)</span>
+    <span class="sep">///</span>
+    <span>Qatar's 106 MTPA LNG capacity transits Hormuz — 20% of global LNG at risk (IGU 2024)</span>
+    <span class="sep">///</span>
+    <span>IEA coordinated SPR max drawdown: ~4.4M b/d vs 20M at risk — reserves buy weeks, not months (IEA)</span>
+    <span class="sep">///</span>
+    <span>Iran stockpiles ~6,000 naval mines — full Hormuz clearance est. 4-8 weeks minimum (US Navy / ONI)</span>
+    <span class="sep">///</span>
+    <span id="ticker-brent"></span>
+    <span class="sep">///</span>
+    <span id="ticker-wti"></span>
+    <span class="sep">///</span>
+    <span id="ticker-ttf"></span>
+    <span class="sep">///</span>
+    <span>Hormuz: 20M b/d at risk = 20% of global oil consumption + 27% of seaborne trade (EIA)</span>
+    <span class="sep">///</span>
+    <span>OPEC+ spare capacity only ~3.5M b/d — cannot offset a full Hormuz closure (EIA 2024)</span>
+    <span class="sep">///</span>
+    <span>Bypass capacity: only ~2.6M b/d available — 13% of Hormuz volume (S&amp;P Platts)</span>
+    <span class="sep">///</span>
+    <span>84% of Hormuz crude destined for Asia · China/India/Japan/S.Korea = 69% (EIA 2024)</span>
+    <span class="sep">///</span>
+    <span>Qatar's 106 MTPA LNG capacity transits Hormuz — 20% of global LNG at risk (IGU 2024)</span>
+    <span class="sep">///</span>
+    <span>IEA coordinated SPR max drawdown: ~4.4M b/d vs 20M at risk — reserves buy weeks, not months (IEA)</span>
+    <span class="sep">///</span>
+    <span>Iran stockpiles ~6,000 naval mines — full Hormuz clearance est. 4-8 weeks minimum (US Navy / ONI)</span>
+    <span class="sep">///</span>
+    <span id="ticker-brent2"></span>
+    <span class="sep">///</span>
+    <span id="ticker-wti2"></span>
+    <span class="sep">///</span>
+    <span id="ticker-ttf2"></span>
+  </div></div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT PANEL -->
+  <div class="panel panel-l">
+    <div class="sec">
+      <div class="sec-label">Daily Oil Transit — Hormuz</div>
+      <div class="bignum">20 <span class="u">M b/d</span></div>
+      <div class="note">≈ 20% of global petroleum consumption <span class="src">(EIA 2024)</span></div>
+      <div class="note" style="margin-top:2px">≈ 27% of global seaborne oil trade <span class="src">(EIA 2024)</span></div>
+    </div>
+
+    <!-- LIVE PRICES + PRICE IMPACT -->
+    <div class="sec">
+      <div class="sec-label">
+        <span style="display:flex;align-items:center;gap:6px;flex:1">
+          <span id="lp-status-dot" class="lp-dot"></span>
+          Live Commodity Prices
+        </span>
+        <span id="lp-timestamp" style="font-size:7px;color:var(--muted);white-space:nowrap"></span>
+      </div>
+      <div class="live-prices" id="live-prices">
+        <div class="lp-card lp-loading" id="lp-brent">
+          <div class="lp-ticker">Brent (BZ=F)</div>
+          <div class="lp-price" id="lp-brent-price">--</div>
+          <div class="lp-change flat" id="lp-brent-change">loading...</div>
+        </div>
+        <div class="lp-card lp-loading" id="lp-wti">
+          <div class="lp-ticker">WTI (CL=F)</div>
+          <div class="lp-price" id="lp-wti-price">--</div>
+          <div class="lp-change flat" id="lp-wti-change">loading...</div>
+        </div>
+        <div class="lp-card lp-loading" id="lp-ttf">
+          <div class="lp-ticker">TTF Gas (TTF=F)</div>
+          <div class="lp-price" id="lp-ttf-price">--</div>
+          <div class="lp-change flat" id="lp-ttf-change">loading...</div>
+        </div>
+      </div>
+      <div class="note"><span class="src">Yahoo Finance · Auto-refreshes every 60s</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Hormuz Closure — Price Scenarios</div>
+      <div class="ps ps-mid" id="ps-partial">
+        <div class="ps-label">Partial Closure (1-2 weeks)</div>
+        <div class="ps-prices" id="ps-partial-prices">
+          <span>Brent <strong style="color:var(--gold)">$120–140</strong></span>
+          <span>WTI <strong style="color:var(--gold)">$115–135</strong></span>
+        </div>
+        <div class="ps-note" id="ps-partial-note">+55-80% · SPR releases, bypass pipelines activated</div>
+      </div>
+      <div class="ps ps-high" id="ps-full">
+        <div class="ps-label">Full Closure (1-3 months)</div>
+        <div class="ps-prices" id="ps-full-prices">
+          <span>Brent <strong style="color:var(--accent)">$150–200</strong></span>
+          <span>WTI <strong style="color:var(--accent)">$145–190</strong></span>
+        </div>
+        <div class="ps-note" id="ps-full-note">+90-155% · Demand destruction kicks in above ~$150</div>
+      </div>
+      <div class="ps ps-ext" id="ps-extended">
+        <div class="ps-label">Extended Closure (3+ months)</div>
+        <div class="ps-prices" id="ps-extended-prices">
+          <span>Brent <strong style="color:#ff4444">$180–250+</strong></span>
+          <span>WTI <strong style="color:#ff4444">$175–240+</strong></span>
+        </div>
+        <div class="ps-note" id="ps-extended-note">Global recession · Rationing likely · 1973-level crisis</div>
+      </div>
+      <div class="contango-box">
+        <div class="cb-label">Futures Curve: Severe Backwardation</div>
+        <div class="cb-text">Near-term contracts at massive premium to deferred. Market pricing acute physical shortage — not a transient spike. Contango structure inverted: front-month $30-50 above 12-month.</div>
+      </div>
+      <div class="note" style="margin-top:5px"><span class="src">(Goldman Sachs / JP Morgan crisis models · EIA disruption scenarios)</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Crude Origin — 2024 <span class="src" style="margin-left:auto">(EIA)</span></div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇸🇦 Saudi Arabia</span><span class="bar-val">5.5M b/d · 38%</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="76" style="background:#f4a261"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇮🇶 Iraq</span><span class="bar-val">3.4M b/d · 23%</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="46" style="background:#e76f51"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇦🇪 UAE</span><span class="bar-val">2.1M b/d · 14%</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="28" style="background:#2a9d8f"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇰🇼 Kuwait</span><span class="bar-val">1.7M b/d · 12%</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="22" style="background:#457b9d"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇮🇷 Iran</span><span class="bar-val">1.3M b/d · 9%</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="18" style="background:#e63946"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span>🇶🇦 Qatar (LNG)</span><span class="bar-val">~20% global LNG</span></div>
+        <div class="bar-bg"><div class="bar-fg" data-w="10" style="background:#a8dadc"></div></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Crude Destination — 2024 <span class="src" style="margin-left:auto">(EIA)</span></div>
+      <div class="donut-wrap">
+        <svg width="78" height="78" viewBox="0 0 78 78">
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#1b2133" stroke-width="13"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#e63946" stroke-width="13"
+            stroke-dasharray="45.6 169.6" stroke-dashoffset="0" transform="rotate(-90 39 39)"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#f4a261" stroke-width="13"
+            stroke-dasharray="27.1 169.6" stroke-dashoffset="-45.6" transform="rotate(-90 39 39)"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#2a9d8f" stroke-width="13"
+            stroke-dasharray="23.7 169.6" stroke-dashoffset="-72.7" transform="rotate(-90 39 39)"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#457b9d" stroke-width="13"
+            stroke-dasharray="20.4 169.6" stroke-dashoffset="-96.4" transform="rotate(-90 39 39)"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#a8dadc" stroke-width="13"
+            stroke-dasharray="25.4 169.6" stroke-dashoffset="-116.8" transform="rotate(-90 39 39)"/>
+          <circle cx="39" cy="39" r="27" fill="none" stroke="#3a4257" stroke-width="13"
+            stroke-dasharray="27.1 169.6" stroke-dashoffset="-142.2" transform="rotate(-90 39 39)"/>
+          <text x="39" y="37" text-anchor="middle" fill="#eef0f7" font-family="Bebas Neue" font-size="12">84%</text>
+          <text x="39" y="46" text-anchor="middle" fill="#5a6278" font-family="IBM Plex Mono" font-size="6">ASIA</text>
+        </svg>
+        <div class="leg">
+          <div class="leg-row"><div class="dot" style="background:#e63946"></div>China<span class="leg-pct">27%</span></div>
+          <div class="leg-row"><div class="dot" style="background:#f4a261"></div>India<span class="leg-pct">16%</span></div>
+          <div class="leg-row"><div class="dot" style="background:#2a9d8f"></div>Japan<span class="leg-pct">14%</span></div>
+          <div class="leg-row"><div class="dot" style="background:#457b9d"></div>S. Korea<span class="leg-pct">12%</span></div>
+          <div class="leg-row"><div class="dot" style="background:#a8dadc"></div>Other Asia<span class="leg-pct">15%</span></div>
+          <div class="leg-row"><div class="dot" style="background:#3a4257"></div>Rest of World<span class="leg-pct">16%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Global Exposure</div>
+      <div class="sg">
+        <div class="sc"><div class="v" style="color:#e63946">20%</div><div class="l">Global oil supply</div></div>
+        <div class="sc"><div class="v" style="color:#f4a261">27%</div><div class="l">Seaborne trade</div></div>
+        <div class="sc"><div class="v" style="color:#2a9d8f">20%</div><div class="l">Global LNG</div></div>
+        <div class="sc"><div class="v" style="color:#ff6b35">2%</div><div class="l">US consumption</div></div>
+      </div>
+    </div>
+
+    <!-- NEW: OPEC+ SPARE CAPACITY -->
+    <div class="sec">
+      <div class="sec-label">OPEC+ Spare Production Capacity <span class="src" style="margin-left:auto">(EIA 2024)</span></div>
+      <div class="bignum" style="font-size:36px">~3.5 <span class="u">M b/d</span></div>
+      <div class="note">Saudi Arabia ~2M · UAE ~1M · Others ~0.5M</div>
+      <div class="bypass-callout" style="margin-top:8px">
+        <div style="font-size:9.5px;color:var(--text);line-height:1.45">
+          <strong style="color:var(--accent)">Critical gap:</strong> Spare capacity covers only 17.5% of Hormuz flow. And most Gulf spare capacity normally ships <em>through</em> Hormuz — it needs bypass routes to reach market.
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW: LNG EXPANDED -->
+    <div class="sec">
+      <div class="sec-label">LNG Exposure — Hormuz <span class="src" style="margin-left:auto">(IGU 2024)</span></div>
+      <div class="bignum" style="font-size:32px">~20% <span class="u">of global LNG</span></div>
+      <div class="note" style="margin-top:3px">Qatar: 106 MTPA — virtually all transits Hormuz</div>
+      <div style="margin-top:8px">
+        <div class="bar-row">
+          <div class="bar-top"><span>TTF (Europe gas)</span><span class="bar-val">€28 → €80-120/MWh</span></div>
+          <div class="bar-bg"><div class="bar-fg bar-fg-delayed" data-w="75" style="background:var(--gold)"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-top"><span>JKM (Asia LNG)</span><span class="bar-val">$12 → $35-55/MMBtu</span></div>
+          <div class="bar-bg"><div class="bar-fg bar-fg-delayed" data-w="82" style="background:var(--accent)"></div></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:4px">Europe still rebuilding from 2022 gas crisis. Asian spot buyers (Bangladesh, Pakistan) priced out first. Japan/Korea face acute winter shortfalls.</div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-label">Bypass Infrastructure</div>
+      <div class="pipe" style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--muted)"><span>Pipeline</span><span>Cap.</span><span>Status</span></div>
+      <div class="pipe">
+        <div><div>🇸🇦 Saudi E-W Pipeline</div><div style="font-size:8px;color:var(--muted)">Abqaiq → Yanbu (Red Sea)</div></div>
+        <div class="pipe-cap">5M b/d</div><div class="badge b-on">Active</div>
+      </div>
+      <div class="pipe">
+        <div><div>🇦🇪 UAE Fujairah</div><div style="font-size:8px;color:var(--muted)">Habshan → Fujairah (Gulf of Oman)</div></div>
+        <div class="pipe-cap">1.8M b/d</div><div class="badge b-lim">Limited</div>
+      </div>
+      <div class="pipe">
+        <div><div>🇮🇷 Goreh-Jask</div><div style="font-size:8px;color:var(--muted)">Goreh → Jask (Gulf of Oman)</div></div>
+        <div class="pipe-cap">300K b/d</div><div class="badge b-off">Inactive</div>
+      </div>
+      <div class="bypass-callout">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--muted);margin-bottom:3px">Available Bypass Capacity <span class="src">(EIA / S&amp;P Platts)</span></div>
+        <div class="bv">~2.6M <span class="bu">b/d</span></div>
+        <div class="bs">vs 20M transiting — <strong style="color:var(--accent)">only 13% covered</strong></div>
+        <div class="note" style="margin-top:3px">E-W running ~2.4M spare · Fujairah near capacity · Jask offline since Sep 2024. Ramp-up time: days to weeks for Saudi E-W, Fujairah cannot scale.</div>
+      </div>
+    </div>
+
+    <!-- NEW: STRATEGIC RESERVES -->
+    <div class="sec">
+      <div class="sec-label">Strategic Petroleum Reserves <span class="src" style="margin-left:auto">(IEA 2024)</span></div>
+      <div class="spr-row" style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--muted);border:none;padding-bottom:2px">
+        <span>Country</span><span>Volume</span><span>Cover</span>
+      </div>
+      <div class="spr-row"><span>🇺🇸 United States</span><span class="spr-val">~395M bbl</span><span class="spr-days">~45 days</span></div>
+      <div class="spr-row"><span>🇨🇳 China</span><span class="spr-val">~950M bbl</span><span class="spr-days">~80 days</span></div>
+      <div class="spr-row"><span>🇯🇵 Japan</span><span class="spr-val">~470M bbl</span><span class="spr-days">~150 days</span></div>
+      <div class="spr-row"><span>🇪🇺 Europe (IEA)</span><span class="spr-val">~1.2B bbl</span><span class="spr-days">~90 days</span></div>
+      <div class="spr-row"><span>🇰🇷 South Korea</span><span class="spr-val">~96M bbl</span><span class="spr-days">~90 days</span></div>
+      <div class="spr-row"><span>🇮🇳 India</span><span class="spr-val">~40M bbl</span><span class="spr-days">~10 days</span></div>
+      <div class="bypass-callout" style="margin-top:8px;background:rgba(244,162,97,.06);border-color:rgba(244,162,97,.2)">
+        <div style="font-size:9px;color:var(--text);line-height:1.4">
+          <strong style="color:var(--gold)">Reserves buy time, not salvation.</strong> IEA coordinated drawdown max: ~4.4M b/d — vs 20M at risk. India's 10-day cover most exposed. China's opaque reserves may overstate readiness.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="ml-title">Map Legend</div>
+      <div class="ml-row">
+        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#f4a261" stroke-width="2" stroke-dasharray="6,3"/></svg>
+        <span style="color:#f4a261">Tanker route</span>
+      </div>
+      <div class="ml-row">
+        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#52b788" stroke-width="2" stroke-dasharray="5,3"/></svg>
+        <span style="color:#52b788">Saudi E-W pipeline</span>
+      </div>
+      <div class="ml-row">
+        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#2a9d8f" stroke-width="2" stroke-dasharray="4,3"/></svg>
+        <span style="color:#2a9d8f">UAE Fujairah bypass</span>
+      </div>
+      <div class="ml-row">
+        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#5a6278" stroke-width="2" stroke-dasharray="3,4"/></svg>
+        <span style="color:#5a6278">Goreh-Jask (inactive)</span>
+      </div>
+      <div style="height:5px"></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#e63946"></div><span>US/Israeli airstrike</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#ff6b35"></div><span>Iranian counter-strike</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#457b9d"></div><span>US naval asset</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#52b788"></div><span>Pipeline terminal</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel panel-r">
+    <div class="sec" style="flex-shrink:0">
+      <div class="sec-label" style="margin-bottom:8px">
+        <span style="display:flex;align-items:center;gap:6px;flex:1">
+          <span id="rss-dot" style="width:6px;height:6px;border-radius:50%;background:#e63946;display:inline-block;animation:blink 1s infinite;flex-shrink:0"></span>
+          LIVE HEADLINES
+        </span>
+        <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
+      </div>
+      <div id="rss-feed" style="max-height:260px;overflow-y:auto">
+        <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
+          ⟳ Fetching live headlines...
+        </div>
+      </div>
+      <div id="rss-error" style="display:none;padding:8px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)"></div>
+    </div>
+
+    <!-- NEW: HISTORICAL PRECEDENTS -->
+    <div class="sec">
+      <div class="sec-label">Historical Precedents</div>
+      <div class="precedent">
+        <div class="prec-header">
+          <span class="prec-event">1973 Arab Oil Embargo</span>
+          <span class="prec-impact" style="color:var(--accent)">+300%</span>
+        </div>
+        <div class="prec-detail">$3→$12/bbl · US gas lines · Reshaped global energy policy for decades</div>
+      </div>
+      <div class="precedent">
+        <div class="prec-header">
+          <span class="prec-event">1984-88 Tanker War</span>
+          <span class="prec-impact" style="color:var(--gold)">Sustained</span>
+        </div>
+        <div class="prec-detail">546 ships attacked · Insurance 500x · US "reflagging" operations in Gulf</div>
+      </div>
+      <div class="precedent">
+        <div class="prec-header">
+          <span class="prec-event">1990 Kuwait Invasion</span>
+          <span class="prec-impact" style="color:var(--accent)">+130%</span>
+        </div>
+        <div class="prec-detail">Oil doubled in 2 months · $21→$46 · 4.3M b/d offline · SPR released</div>
+      </div>
+      <div class="precedent">
+        <div class="prec-header">
+          <span class="prec-event">2019 Abqaiq Attack</span>
+          <span class="prec-impact" style="color:var(--gold)">+15%</span>
+        </div>
+        <div class="prec-detail">5.7M b/d offline · Largest single disruption ever · Recovered in weeks</div>
+      </div>
+      <div class="precedent">
+        <div class="prec-header">
+          <span class="prec-event">2023-24 Houthi Red Sea</span>
+          <span class="prec-impact" style="color:var(--teal)">+300% freight</span>
+        </div>
+        <div class="prec-detail">Suez transits -50% · Cape reroute adds 10-14 days · Still ongoing</div>
+      </div>
+      <div class="note" style="margin-top:6px">Hormuz closure dwarfs all precedents: 20M b/d vs Abqaiq's 5.7M or Kuwait's 4.3M. No modern equivalent exists.</div>
+    </div>
+
+    <!-- NEW: INSURANCE & FREIGHT -->
+    <div class="sec">
+      <div class="sec-label">Insurance &amp; Freight Impact <span class="src" style="margin-left:auto">(Lloyd's)</span></div>
+      <div class="sg">
+        <div class="sc">
+          <div class="v" style="color:var(--accent);font-size:20px">5-10%</div>
+          <div class="l">War-risk premium<br><span style="font-size:6.5px;opacity:.7">vs 0.05% normal</span></div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--gold);font-size:20px">$200K+</div>
+          <div class="l">VLCC daily rate<br><span style="font-size:6.5px;opacity:.7">vs ~$35K normal</span></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:6px">War-risk on $100M hull = $5-10M per transit. Tanker owners refusing Hormuz passage. BDTI index expected to spike 500%+. 1984 Tanker War premiums were 100x — this would be worse.</div>
+    </div>
+
+    <!-- NEW: REFINERY DEPENDENCY -->
+    <div class="sec">
+      <div class="sec-label">Downstream — Key Refineries at Risk <span class="src" style="margin-left:auto">(Platts)</span></div>
+      <div class="ref-row" style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--muted);border:none;padding-bottom:0"><span>Facility</span><span>Capacity</span></div>
+      <div class="ref-row">
+        <span>🇮🇳 Jamnagar (Reliance)</span><span class="ref-cap">1.4M b/d</span>
+        <span class="ref-note">World's largest refinery · ~100% Gulf crude</span>
+      </div>
+      <div class="ref-row">
+        <span>🇰🇷 SK Ulsan</span><span class="ref-cap">840K b/d</span>
+        <span class="ref-note">~70% Middle East crude feedstock</span>
+      </div>
+      <div class="ref-row">
+        <span>🇨🇳 Rongsheng (Zhejiang)</span><span class="ref-cap">800K b/d</span>
+        <span class="ref-note">Heavy Gulf crude dependency</span>
+      </div>
+      <div class="ref-row">
+        <span>🇸🇬 Shell Pulau Bukom</span><span class="ref-cap">500K b/d</span>
+        <span class="ref-note">Singapore hub · mixed sources</span>
+      </div>
+      <div class="ref-row">
+        <span>🇯🇵 ENEOS Negishi</span><span class="ref-cap">270K b/d</span>
+        <span class="ref-note">~85% Middle East crude</span>
+      </div>
+      <div class="note" style="margin-top:6px">Asian refining complex (~35M b/d) faces feedstock crisis within 2-4 weeks of full closure. Product cracks (gasoline, diesel, jet fuel) spike globally.</div>
+    </div>
+
+    <!-- NEW: CONSUMER IMPACT -->
+    <div class="sec">
+      <div class="sec-label">Consumer Impact — Who Pays</div>
+      <div class="sg">
+        <div class="sc">
+          <div class="v" style="color:var(--accent);font-size:20px">$5-7</div>
+          <div class="l">US gasoline/gal<br><span style="font-size:6.5px;opacity:.7">vs $3.20 today</span></div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--gold);font-size:20px">2-3M</div>
+          <div class="l">b/d demand destroyed</div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--warn);font-size:20px">60-80%</div>
+          <div class="l">Recession probability</div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--teal);font-size:20px">2-4%</div>
+          <div class="l">GDP hit (importers)</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:6px">Every $10/bbl increase ≈ 0.2% off global GDP. At $180 Brent (+$100), equivalent to ~2% GDP shock. Developing Asian economies and oil-import-dependent nations (India, Japan, Turkey) hit hardest.</div>
+    </div>
+
+    <!-- NEW: TIMEFRAME TO REOPEN -->
+    <div class="sec">
+      <div class="sec-label">Timeframe to Reopen — Scenarios <span class="src" style="margin-left:auto">(ONI / USN)</span></div>
+      <div class="ts-row">
+        <div class="ts-header">
+          <span class="ts-scenario">Quick De-escalation</span>
+          <span class="ts-time" style="color:var(--green)">48-72 hrs</span>
+        </div>
+        <div class="ts-detail">Diplomatic breakthrough · Iran backs down · Price spike +50%, rapid reversion</div>
+      </div>
+      <div class="ts-row">
+        <div class="ts-header">
+          <span class="ts-scenario">Mine Clearance Required</span>
+          <span class="ts-time" style="color:var(--gold)">2-6 weeks</span>
+        </div>
+        <div class="ts-detail">Iran deploys mines in shipping lanes · US/UK MCM ops · Gradual reopening</div>
+      </div>
+      <div class="ts-row">
+        <div class="ts-header">
+          <span class="ts-scenario">Sustained Combat</span>
+          <span class="ts-time" style="color:var(--warn)">1-3 months</span>
+        </div>
+        <div class="ts-detail">Active fighting in Gulf waters · IRGC fast-boat threat · Insurance blackout zone</div>
+      </div>
+      <div class="ts-row">
+        <div class="ts-header">
+          <span class="ts-scenario">Full Regional War</span>
+          <span class="ts-time" style="color:var(--accent)">3-12 months</span>
+        </div>
+        <div class="ts-detail">Multi-front: Hezbollah, Houthis join · Infrastructure destroyed · Structural repricing</div>
+      </div>
+      <div class="note" style="margin-top:6px">Iran stockpiles ~6,000 naval mines (ONI est.). US 5th Fleet MCM: ~8-12 vessels. Full clearance: 4-8 weeks min. IRGC Navy operates 1,500+ fast-attack craft — can sustain harassment for months.</div>
+    </div>
+
+    <!-- ESCALATION TIMELINE -->
+    <div class="sec" style="flex:1;overflow-y:auto">
+      <div class="sec-label">Escalation Timeline</div>
+      <div class="tl">
+        <div class="tl-item"><div class="tl-dot" style="background:#3a4257"></div>
+          <div class="tl-time">Nov 2022</div>
+          <div class="tl-text">OPEC+ cuts reduce Saudi/Kuwait/UAE Hormuz flows by 1.6M b/d</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:#3a4257"></div>
+          <div class="tl-time">Late 2025</div>
+          <div class="tl-text">Iran economic collapse; nationwide protests begin against the government</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--gold)"></div>
+          <div class="tl-time">Jan 13, 2026</div>
+          <div class="tl-text">Iran: "ready for war." US amasses air/naval assets at scale not seen since 2003 Iraq invasion</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--gold)"></div>
+          <div class="tl-time">Jan 28, 2026</div>
+          <div class="tl-text">Trump on Truth Social: "A massive Armada is heading to Iran"</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--warn)"></div>
+          <div class="tl-time">Feb 3, 2026</div>
+          <div class="tl-text">6 IRGC gunboats attempt to seize US tanker in Hormuz. F-35 shoots down Iranian Shahed-139 drone approaching USS Abraham Lincoln</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--warn)"></div>
+          <div class="tl-time">Feb 5, 2026</div>
+          <div class="tl-text">IRGC seizes two foreign oil tankers near Farsi Island, transfers to Bushehr port</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--warn)"></div>
+          <div class="tl-time">Feb 17, 2026</div>
+          <div class="tl-text">Khamenei threatens US warships. Hormuz closed several hours during live Iranian military drill</div>
+        </div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--accent)"></div>
+          <div class="tl-time">Feb 24, 2026</div>
+          <div class="tl-text">Trump State of the Union: Iran reviving nuclear weapons. Missiles reaching Europe. Issues final ultimatum</div>
+        </div>
+        <div class="tl-item tl-live"><div class="tl-dot" style="background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>
+          <div class="tl-time">FEB 28, 2026 — NOW</div>
+          <div class="tl-text">US &amp; Israel launch joint military strikes. Iran retaliates. Middle East in full conflict.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── DARK MAP ──
+const map = L.map('map', {
+  center: [28, 54],
+  zoom: 5.2,
+  zoomControl: true,
+  attributionControl: true
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  subdomains: 'abc',
+  maxZoom: 18
+}).addTo(map);
+
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(195deg) brightness(0.75) saturate(0.55) contrast(1.15);
+  }
+`;
+document.head.appendChild(styleEl);
+
+// ── HELPERS ──
+function mkPulse(latlng, color, sz, delay, tipHtml) {
+  const s = sz, S = s + 4;
+  const icon = L.divIcon({
+    className: '',
+    iconSize: [S*2, S*2], iconAnchor: [S, S],
+    html: `<div style="position:relative;width:${S*2}px;height:${S*2}px">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:.15;
+        animation:pulse-ring 1.8s ease-out ${delay}s infinite"></div>
+      <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:.1;
+        animation:pulse-ring2 1.8s ease-out ${delay+.6}s infinite"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        width:${s}px;height:${s}px;border-radius:50%;background:${color};
+        box-shadow:0 0 ${s}px ${color}88"></div>
+    </div>`
+  });
+  const m = L.marker(latlng, {icon}).addTo(map);
+  if (tipHtml) m.bindPopup(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:260, closeButton:false});
+  return m;
+}
+
+function mkCity(latlng, name, color='#8899aa', r=4) {
+  const icon = L.divIcon({
+    className:'', iconSize:[r*2,r*2], iconAnchor:[r,r],
+    html:`<div style="width:${r*2}px;height:${r*2}px;border-radius:50%;background:${color};opacity:.65"></div>`
+  });
+  L.marker(latlng,{icon}).addTo(map)
+    .bindTooltip(`<div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#eef0f7;
+      background:rgba(8,10,18,.9);border:1px solid #1b2133;padding:3px 7px;border-radius:2px">${name}</div>`,
+      {direction:'top',offset:[0,-r-2],opacity:1});
+}
+
+function mkLabel(latlng, html) {
+  const icon = L.divIcon({
+    className:'', iconSize:[0,0], iconAnchor:[0,0],
+    html:`<div style="pointer-events:none;white-space:nowrap;text-shadow:1px 1px 4px #000,0 0 8px #000">${html}</div>`
+  });
+  L.marker(latlng,{icon,interactive:false}).addTo(map);
+}
+
+function line(coords, color, dash, w=2, op=0.7, popupHtml) {
+  const pl = L.polyline(coords, {color, weight:w, opacity:op, dashArray:dash}).addTo(map);
+  if (popupHtml) pl.bindPopup(`<div class="map-tip">${popupHtml}</div>`, {maxWidth:280, closeButton:false});
+  return pl;
+}
+
+function arrowHead(latlng, color) {
+  const icon = L.divIcon({
+    className:'', iconSize:[14,14], iconAnchor:[7,7],
+    html:`<div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:10px solid ${color};opacity:.8;margin-top:2px"></div>`
+  });
+  L.marker(latlng,{icon,interactive:false}).addTo(map);
+}
+
+// ── REGION LABELS ──
+mkLabel([32, 52], `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:rgba(230,57,70,.45);letter-spacing:2px">IRAN</span>`);
+mkLabel([33.5, 52.5], `<span style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(230,57,70,.5);letter-spacing:2px">⚠ ACTIVE COMBAT ZONE</span>`);
+mkLabel([24, 43.5], `<span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(255,255,255,.18);letter-spacing:1px">SAUDI ARABIA</span>`);
+mkLabel([33, 43], `<span style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:rgba(255,255,255,.18)">IRAQ</span>`);
+mkLabel([23.5, 57], `<span style="font-family:'Bebas Neue',sans-serif;font-size:11px;color:rgba(255,255,255,.15)">OMAN</span>`);
+mkLabel([30, 66], `<span style="font-family:'Bebas Neue',sans-serif;font-size:11px;color:rgba(255,255,255,.12)">PAKISTAN</span>`);
+
+// ── HORMUZ LABELS ──
+mkLabel([26.7, 56.3], `<span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:#a8dadc;letter-spacing:1px">— STRAIT OF HORMUZ —</span>`);
+mkLabel([26.35, 56.5], `<span style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:rgba(168,218,220,.5)">21 NM NAVIGABLE WIDTH</span>`);
+
+// ── VOLUME CALLOUT ON HORMUZ ──
+const volIcon = L.divIcon({
+  className:'', iconSize:[140,48], iconAnchor:[70,56],
+  html:`<div style="background:rgba(7,9,15,.92);border:1px solid #f4a261;border-radius:4px;padding:7px 12px;text-align:center">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#5a6278;letter-spacing:1px">DAILY FLOW AT RISK</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#f4a261;line-height:1.1">20 MILLION b/d</div>
+  </div>`
+});
+L.marker([19.5, 57.5], {icon:volIcon, interactive:false}).addTo(map);
+
+// ── TANKER ROUTES ──
+line([
+  [26.6,48.5],[26.8,50.5],[26.7,52.5],[26.7,55.5],[26.5,57.2],
+  [25.3,58.5],[23,60],[20,63],[16,68],[13,72],[10,76],[7,82]
+], '#f4a261', '10 5', 2.5, 0.75,
+  `<strong>Outbound Tanker Route</strong><span class="tip-gold">Persian Gulf → Gulf of Oman → Indian Ocean → Asia<br>Primary crude export corridor<br>~20M b/d total flow (crude + products + LNG)<br><span style="color:#5a6278">VLCC transit time through Hormuz: ~6 hours</span></span>`
+);
+
+line([
+  [26.3,48.5],[26.5,50.5],[26.4,52.5],[26.4,55],[26.2,57],
+  [25,58],[22.5,60.5],[19.5,63.5],[15.5,68.5],[12.5,72.5],[9.5,76.5]
+], '#457b9d', '6 5', 1.5, 0.4,
+  `<strong>Inbound Tanker Route</strong><span class="tip-blue">Return route for empty/ballast tankers<br>~2-lane traffic separation scheme<br><span style="color:#5a6278">Inbound lane: 2 NM wide · Outbound: 2 NM wide · Median: 2 NM</span></span>`
+);
+
+// ── BYPASS PIPELINES (with interactive popups) ──
+// Saudi E-W: Abqaiq to Yanbu
+line([
+  [26.0, 49.7], [25.2, 47.8], [24.0, 45.5], [23.2, 42.8], [24.09, 38.05]
+], '#52b788', '7 4', 2.5, 0.75,
+  `<strong>🇸🇦 Saudi East-West Pipeline (Petroline)</strong>
+  <span class="tip-green">
+  <strong>Route:</strong> Abqaiq → Yanbu (Red Sea port)<br>
+  <strong>Capacity:</strong> 5M b/d (max 7M surge)<br>
+  <strong>Current use:</strong> ~2.6M b/d<br>
+  <strong>Available spare:</strong> ~2.4M b/d<br>
+  <strong>Ramp-up time:</strong> Days (already operational)<br>
+  <strong>Length:</strong> ~1,200 km<br><br>
+  <span style="color:#f4a261">⚠ Most important bypass. But even at max capacity, only replaces 25% of Hormuz flow. Yanbu port infrastructure is the bottleneck — loading berths designed for ~3M b/d.</span>
+  </span>`
+);
+
+// UAE Fujairah bypass
+line([
+  [24.35, 54.4], [23.9, 55.2], [23.2, 56.0], [25.12, 56.34]
+], '#2a9d8f', '5 3', 2, 0.7,
+  `<strong>🇦🇪 Abu Dhabi Crude Oil Pipeline (ADCOP)</strong>
+  <span class="tip-teal">
+  <strong>Route:</strong> Habshan → Fujairah (Gulf of Oman)<br>
+  <strong>Capacity:</strong> 1.8M b/d<br>
+  <strong>Current use:</strong> ~1.5M b/d<br>
+  <strong>Available spare:</strong> ~300K b/d<br>
+  <strong>Ramp-up time:</strong> Limited — already near capacity<br>
+  <strong>Length:</strong> ~360 km<br><br>
+  <span style="color:#f4a261">⚠ Already running near-full. Cannot meaningfully scale. Fujairah is outside Hormuz but vulnerable to Iranian missile/drone attack from nearby coast.</span>
+  </span>`
+);
+
+// Goreh-Jask
+line([
+  [29.45, 50.9], [28.6, 52.5], [27.5, 54.5], [25.65, 57.78]
+], '#5a6278', '3 5', 1.5, 0.4,
+  `<strong>🇮🇷 Goreh-Jask Pipeline</strong>
+  <span style="color:#5a6278">
+  <strong>Route:</strong> Goreh → Jask (Gulf of Oman)<br>
+  <strong>Capacity:</strong> 300K b/d (designed for 1M)<br>
+  <strong>Status:</strong> <span style="color:#e63946">INACTIVE since Sep 2024</span><br>
+  <strong>Available spare:</strong> 0 b/d<br><br>
+  <span style="color:#e63946">⚠ Iranian-operated — would be offline in any conflict scenario regardless. Never reached design capacity.</span>
+  </span>`
+);
+
+// ── PIPELINE TERMINALS ──
+mkPulse([26.0, 49.7], '#52b788', 7, 0,
+  `<strong>Abqaiq Processing Hub</strong><span class="tip-green">World's largest oil processing facility<br>Start of E-W Pipeline bypass<br>Processes ~7M b/d of Saudi crude<br><span style="color:#5a6278">Attacked by Houthi drones Sep 2019 — 5.7M b/d offline for weeks</span></span>`);
+mkPulse([24.09, 38.05], '#52b788', 7, 0.5,
+  `<strong>Yanbu, Red Sea</strong><span class="tip-green">Saudi E-W pipeline terminus<br>5M b/d pipeline capacity (7M max surge)<br>Red Sea export — bypasses Hormuz entirely<br><span style="color:#5a6278">Bottleneck: port loading capacity ~3M b/d</span></span>`);
+mkPulse([25.12, 56.34], '#2a9d8f', 6, 0.3,
+  `<strong>Fujairah Terminal, UAE</strong><span class="tip-teal">UAE ADCOP pipeline terminus<br>1.8M b/d capacity (near full at ~1.5M)<br>Gulf of Oman — outside Hormuz chokepoint<br><span style="color:#5a6278">⚠ Only ~65km from Iranian coast — vulnerable to ASCM/drone attack</span></span>`);
+mkPulse([25.65, 57.78], '#5a6278', 5, 0,
+  `<strong>Jask Terminal, Iran</strong><span style="color:#5a6278">Goreh-Jask pipeline terminus<br>Inactive since Sep 2024<br>Would be offline in any conflict scenario</span>`);
+
+// ── STRIKE SITES — US/Israeli (red) ──
+mkPulse([35.69, 51.39], '#e63946', 9, 0,
+  `<strong>Tehran ⚡ STRUCK</strong><span class="tip-red">US/Israeli joint strike · Multiple sites hit<br>Near Khamenei's offices · Smoke rising<br>Missiles on University St &amp; Jomhouri area</span>`);
+mkPulse([33.35, 44.4], '#e63946', 7, 0.4,
+  `<strong>Baghdad ⚡ Kata'ib Hezbollah HQ</strong><span class="tip-red">Iran-backed paramilitary HQ struck<br>Near Baghdad, Iraq</span>`);
+mkPulse([33.6, 46.3], '#e63946', 6, 0.7,
+  `<strong>Ilam Province ⚡</strong><span class="tip-red">Western Iran · Israeli airstrike confirmed<br>Military and defense sites targeted</span>`);
+mkPulse([27.1, 57.08], '#e63946', 6, 1.0,
+  `<strong>Minab, Hormozgan ⚡</strong><span class="tip-red">Near Strait of Hormuz · Southern Iran<br>Elementary school struck · 40+ killed (IRNA)</span>`);
+mkPulse([28.92, 50.83], '#e63946', 6, 0.3,
+  `<strong>Bushehr Region ⚡</strong><span class="tip-red">Nuclear &amp; military infrastructure<br>Major target site</span>`);
+mkPulse([36.32, 59.56], '#e63946', 5, 0.6,
+  `<strong>Mashhad ⚡</strong><span class="tip-red">Iran's second city · Strikes reported</span>`);
+
+// ── IRANIAN COUNTER-STRIKES (orange) ──
+mkPulse([26.22, 50.59], '#ff6b35', 8, 0.5,
+  `<strong>Manama, Bahrain ⚡ COUNTER-STRIKE</strong><span class="tip-orange">Iranian missiles strike US Navy HQ<br>US 5th Fleet headquarters</span>`);
+mkPulse([32.8, 35.1], '#ff6b35', 6, 0.9,
+  `<strong>Northern Israel ⚡</strong><span class="tip-orange">Iranian retaliatory missile strikes<br>Air defenses intercept; multiple impacts</span>`);
+
+// ── US NAVAL ASSETS (blue) ──
+mkPulse([23.5, 60.5], '#457b9d', 7, 0,
+  `<strong>USS Abraham Lincoln (CVN-72)</strong><span class="tip-blue">Carrier Strike Group · Gulf of Oman<br>F-35 shot down Iranian drone Feb 3<br><span style="color:#5a6278">~70 aircraft · Aegis escort screen</span></span>`);
+mkPulse([24.9, 58.2], '#457b9d', 6, 0.6,
+  `<strong>USS McFaul (DDG-74)</strong><span class="tip-blue">Guided missile destroyer<br>Escorted US tanker through Hormuz, Feb 3<br><span style="color:#5a6278">96 VLS cells · SM-2/SM-6 air defense</span></span>`);
+mkPulse([25.2, 56.7], '#457b9d', 6, 1.2,
+  `<strong>2nd CVN Strike Group</strong><span class="tip-blue">Additional carrier force deployed<br>Gulf of Oman / Arabian Sea<br><span style="color:#5a6278">MCM assets embarked for mine countermeasures</span></span>`);
+
+// ── CITIES ──
+mkCity([35.69, 51.39], 'Tehran', '#cc4455', 5);
+mkCity([32.66, 51.68], 'Isfahan', '#8899aa');
+mkCity([29.61, 52.53], 'Shiraz', '#8899aa');
+mkCity([32.0, 48.69], 'Ahvaz', '#8899aa');
+mkCity([38.06, 46.3], 'Tabriz', '#8899aa');
+mkCity([24.69, 46.72], 'Riyadh', '#f4a261', 5);
+mkCity([33.34, 44.4], 'Baghdad', '#f4a261', 5);
+mkCity([25.29, 51.53], 'Doha', '#8899aa');
+mkCity([29.37, 47.98], 'Kuwait City', '#8899aa');
+mkCity([26.22, 50.59], 'Manama', '#ff6b35', 5);
+mkCity([23.62, 58.59], 'Muscat', '#8899aa');
+mkCity([24.45, 54.38], 'Abu Dhabi', '#8899aa');
+mkCity([25.26, 55.3], 'Dubai', '#8899aa');
+mkCity([27.1, 57.08], 'Bandar Abbas', '#8899aa', 3);
+
+// ── LIVE RSS FEED ──
+const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+
+// Broadened keyword list for better coverage
+const KEYWORDS = [
+  'iran','hormuz','tehran','irgc','khamenei','persian gulf','middle east',
+  'oil','crude','brent','opec','tanker','strait','nuclear','israel',
+  'gulf','saudi','iraq','petroleum','energy','gas price','lng','qatar',
+  'sanctions','military strike','war','conflict','missile','drone',
+  'navy','pentagon','hezbollah','houthi','red sea',
+  'pipeline','refinery','barrel','commodity','shipping'
+];
+
+const FEEDS = [
+  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',                source: 'BBC World' },
+  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml',    source: 'BBC Middle East' },
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml',                  source: 'Al Jazeera' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',source: 'NYT Middle East' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',     source: 'NYT World' },
+  { url: 'https://feeds.reuters.com/reuters/topNews',                   source: 'Reuters' },
+  { url: 'https://rss.cnn.com/rss/edition_world.rss',                  source: 'CNN' },
+  { url: 'https://feeds.skynews.com/feeds/rss/world.xml',              source: 'Sky News' },
+  { url: 'https://www.theguardian.com/world/middleeast/rss',           source: 'The Guardian' },
+  { url: 'https://www.theguardian.com/business/oil/rss',               source: 'Guardian Oil' },
+];
+
+function isRelevant(item) {
+  const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
+  return KEYWORDS.some(k => text.includes(k));
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const mins = Math.round((Date.now() - d) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return '1d ago';
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString();
+}
+
+function stripHtml(s) {
+  return (s || '').replace(/<[^>]*>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
+}
+
+function alertClass(dateStr) {
+  if (!dateStr) return '';
+  const mins = Math.round((Date.now() - new Date(dateStr)) / 60000);
+  if (mins < 60) return '';
+  if (mins < 360) return 'gold';
+  return 'teal';
+}
+
+async function fetchFeed(feed) {
+  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=25`;
+  const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  const json = await r.json();
+  if (!json.items) return [];
+  return json.items.map(item => ({
+    title: stripHtml(item.title),
+    desc: stripHtml(item.description).slice(0, 180),
+    link: item.link,
+    pubDate: item.pubDate,
+    source: feed.source,
+    relevant: isRelevant(item)
+  }));
+}
+
+function renderFeed(items) {
+  const feed = document.getElementById('rss-feed');
+  if (!items.length) {
+    feed.innerHTML = `<div style="padding:12px 0;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--muted);text-align:center">
+      No matching headlines found right now.<br>
+      <span style="font-size:8px">Retrying in 3 minutes...</span>
+    </div>`;
+    return;
+  }
+
+  feed.innerHTML = items.map(item => `
+    <a href="${item.link || '#'}" target="_blank" rel="noopener" style="text-decoration:none;display:block;margin-bottom:6px">
+      <div class="alert ${alertClass(item.pubDate)}" style="cursor:pointer;transition:border-color .2s">
+        <div class="alert-t">${timeAgo(item.pubDate)} · ${item.source}</div>
+        <div class="alert-b" style="font-size:9.5px"><strong>${item.title}</strong>${item.desc && item.desc !== item.title ? '<br><span style="opacity:.75">'+item.desc.slice(0,130)+(item.desc.length>130?'…':'')+'</span>' : ''}</div>
+      </div>
+    </a>
+  `).join('');
+
+  const upd = document.getElementById('rss-updated');
+  if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadRSS() {
+  try {
+    const results = await Promise.allSettled(FEEDS.map(fetchFeed));
+    const all = results
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value);
+
+    // Separate relevant and general
+    const relevant = all.filter(item => item.relevant);
+    const general = all.filter(item => !item.relevant);
+
+    // Deduplicate by title similarity
+    const seen = new Set();
+    function dedup(items) {
+      return items.filter(item => {
+        const key = item.title.slice(0, 50).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    const uniqueRelevant = dedup(relevant).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const uniqueGeneral = dedup(general).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+
+    // Show relevant first, fill remaining slots with general headlines
+    const combined = [...uniqueRelevant.slice(0, 15)];
+    if (combined.length < 8) {
+      combined.push(...uniqueGeneral.slice(0, 8 - combined.length));
+    }
+
+    renderFeed(combined.slice(0, 15));
+  } catch (e) {
+    const feed = document.getElementById('rss-feed');
+    feed.innerHTML = `<div style="padding:10px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)">
+      Could not load live feed. Check network / CORS.<br><span style="font-size:8px">Retrying in 3 min...</span>
+    </div>`;
+  }
+}
+
+// Initial load + refresh every 3 minutes
+loadRSS();
+setInterval(loadRSS, 3 * 60 * 1000);
+
+// Animate bars
+setTimeout(() => {
+  document.querySelectorAll('.bar-fg').forEach(f => {
+    const w = f.dataset.w;
+    f.style.width = w + '%';
+  });
+}, 600);
+
+// Animate delayed bars (LNG section)
+setTimeout(() => {
+  document.querySelectorAll('.bar-fg-delayed').forEach(f => {
+    const w = f.dataset.w;
+    f.style.width = w + '%';
+  });
+}, 1200);
+
+// ── LIVE YAHOO FINANCE PRICES ──
+const YF_TICKERS = [
+  { symbol: 'BZ=F', name: 'Brent', elPrice: 'lp-brent-price', elChange: 'lp-brent-change', elCard: 'lp-brent' },
+  { symbol: 'CL=F', name: 'WTI',   elPrice: 'lp-wti-price',   elChange: 'lp-wti-change',   elCard: 'lp-wti' },
+  { symbol: 'TTF=F',name: 'TTF',   elPrice: 'lp-ttf-price',   elChange: 'lp-ttf-change',   elCard: 'lp-ttf' },
+];
+
+// CORS proxies — try in order, fall back if one fails
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchWithProxy(url) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(proxy(url), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      return await res.json();
+    } catch (e) {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function fetchYahooQuote(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+  const data = await fetchWithProxy(url);
+  if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
+
+  const result = data.chart.result[0];
+  const meta = result.meta;
+  const closes = result.indicators.quote[0].close;
+  const validCloses = closes.filter(p => p !== null && p !== undefined);
+
+  if (validCloses.length < 2) return null;
+
+  const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
+  const prevClose = validCloses[validCloses.length - 2];
+  const change = price - prevClose;
+  const changePct = (change / prevClose) * 100;
+
+  return {
+    price: Math.round(price * 100) / 100,
+    change: Math.round(change * 100) / 100,
+    changePct: Math.round(changePct * 100) / 100,
+    currency: meta.currency || 'USD',
+  };
+}
+
+function formatPrice(price, currency) {
+  if (currency === 'EUR') return '€' + price.toFixed(2);
+  return '$' + price.toFixed(2);
+}
+
+function updatePriceCard(ticker, quote) {
+  const cardEl = document.getElementById(ticker.elCard);
+  const priceEl = document.getElementById(ticker.elPrice);
+  const changeEl = document.getElementById(ticker.elChange);
+  if (!priceEl || !changeEl || !cardEl) return;
+
+  cardEl.classList.remove('lp-loading');
+  priceEl.textContent = formatPrice(quote.price, quote.currency);
+
+  const sign = quote.change >= 0 ? '+' : '';
+  const arrow = quote.change >= 0 ? '▲' : '▼';
+  const changeTxt = `${arrow} ${sign}${quote.change.toFixed(2)} (${sign}${quote.changePct.toFixed(2)}%)`;
+  changeEl.textContent = changeTxt;
+  changeEl.className = 'lp-change ' + (quote.change > 0 ? 'up' : quote.change < 0 ? 'down' : 'flat');
+
+  // Update ticker tape with live prices
+  const tickerMap = { 'BZ=F': ['ticker-brent','ticker-brent2'], 'CL=F': ['ticker-wti','ticker-wti2'], 'TTF=F': ['ticker-ttf','ticker-ttf2'] };
+  const ids = tickerMap[ticker.symbol];
+  if (ids) {
+    const txt = `${ticker.name}: ${formatPrice(quote.price, quote.currency)} ${changeTxt}`;
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = txt; });
+  }
+}
+
+function updateScenarios(brentPrice) {
+  if (!brentPrice || brentPrice <= 0) return;
+  const b = brentPrice;
+  // WTI typically trades ~$4-5 below Brent
+  const spread = 4;
+  const w = b - spread;
+
+  // Partial closure: +55-80%
+  const p1b = Math.round(b * 1.55), p2b = Math.round(b * 1.80);
+  const p1w = Math.round(w * 1.55), p2w = Math.round(w * 1.80);
+  const partialEl = document.getElementById('ps-partial-prices');
+  const partialNote = document.getElementById('ps-partial-note');
+  if (partialEl) partialEl.innerHTML = `<span>Brent <strong style="color:var(--gold)">$${p1b}–${p2b}</strong></span><span>WTI <strong style="color:var(--gold)">$${p1w}–${p2w}</strong></span>`;
+  if (partialNote) partialNote.textContent = `+55-80% from $${b.toFixed(0)} · SPR releases, bypass pipelines activated`;
+
+  // Full closure: +90-155%
+  const f1b = Math.round(b * 1.90), f2b = Math.round(b * 2.55);
+  const f1w = Math.round(w * 1.90), f2w = Math.round(w * 2.55);
+  const fullEl = document.getElementById('ps-full-prices');
+  const fullNote = document.getElementById('ps-full-note');
+  if (fullEl) fullEl.innerHTML = `<span>Brent <strong style="color:var(--accent)">$${f1b}–${f2b}</strong></span><span>WTI <strong style="color:var(--accent)">$${f1w}–${f2w}</strong></span>`;
+  if (fullNote) fullNote.textContent = `+90-155% from $${b.toFixed(0)} · Demand destruction kicks in above ~$150`;
+
+  // Extended closure: +130-220%
+  const e1b = Math.round(b * 2.30), e2b = Math.round(b * 3.20);
+  const e1w = Math.round(w * 2.30), e2w = Math.round(w * 3.20);
+  const extEl = document.getElementById('ps-extended-prices');
+  const extNote = document.getElementById('ps-extended-note');
+  if (extEl) extEl.innerHTML = `<span>Brent <strong style="color:#ff4444">$${e1b}–${e2b}+</strong></span><span>WTI <strong style="color:#ff4444">$${e1w}–${e2w}+</strong></span>`;
+  if (extNote) extNote.textContent = `+130-220% from $${b.toFixed(0)} · Global recession · Rationing likely`;
+}
+
+async function loadLivePrices() {
+  const dot = document.getElementById('lp-status-dot');
+  const tsEl = document.getElementById('lp-timestamp');
+  let anySuccess = false;
+
+  const results = await Promise.allSettled(
+    YF_TICKERS.map(async (ticker) => {
+      const quote = await fetchYahooQuote(ticker.symbol);
+      if (quote) {
+        updatePriceCard(ticker, quote);
+        anySuccess = true;
+        // Update scenarios based on Brent price
+        if (ticker.symbol === 'BZ=F') {
+          updateScenarios(quote.price);
+        }
+      }
+      return quote;
+    })
+  );
+
+  if (dot) {
+    dot.className = anySuccess ? 'lp-dot' : 'lp-dot error';
+  }
+  if (tsEl) {
+    tsEl.textContent = anySuccess
+      ? 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})
+      : 'Failed to load — retrying...';
+  }
+}
+
+// Initial load + refresh every 60 seconds
+loadLivePrices();
+setInterval(loadLivePrices, 60 * 1000);
+</script>
+</body>
+</html>
