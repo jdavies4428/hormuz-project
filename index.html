@@ -354,7 +354,7 @@
     </div>
   </div>
   <div class="header-right">
-    <div class="datestamp">February 28, 2026</div>
+    <div class="datestamp" id="live-utc"></div>
     <div class="source-line">EIA · IEA · Vortexa · S&amp;P Global Platts · Lloyd's · ONI · AP · Reuters · Al Jazeera</div>
   </div>
 </div>
@@ -1375,6 +1375,22 @@ setInterval(loadLivePrices, 60 * 1000);
 // ── MOBILE: force map to recalculate size ──
 window.addEventListener('resize', () => { map.invalidateSize(); });
 setTimeout(() => { map.invalidateSize(); }, 500);
+
+// ── LIVE UTC CLOCK ──
+function updateUTC() {
+  const el = document.getElementById('live-utc');
+  if (!el) return;
+  const now = new Date();
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const m = months[now.getUTCMonth()];
+  const d = now.getUTCDate();
+  const y = now.getUTCFullYear();
+  const h = String(now.getUTCHours()).padStart(2,'0');
+  const min = String(now.getUTCMinutes()).padStart(2,'0');
+  el.textContent = `${m} ${d}, ${y} · ${h}:${min} UTC`;
+}
+updateUTC();
+setInterval(updateUTC, 60000);
 </script>
 </body>
 </html>
