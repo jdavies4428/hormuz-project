@@ -1191,13 +1191,13 @@ mkCity([27.1, 57.08], 'Bandar Abbas', '#8899aa', 3);
 // ── DATA LAYERS ──
 
 // Helper: diamond marker for bases
-function mkDiamond(latlng, color, tipHtml) {
+function mkDiamond(latlng, color, tipHtml, flag) {
   const icon = L.divIcon({
-    className:'', iconSize:[12,12], iconAnchor:[6,6],
-    html:`<div style="width:9px;height:9px;background:${color};transform:rotate(45deg);border-radius:1px;opacity:.85;box-shadow:0 0 4px ${color}66"></div>`
+    className:'', iconSize:[16,16], iconAnchor:[8,8],
+    html:`<div style="font-size:13px;line-height:16px;text-align:center;filter:drop-shadow(0 0 3px #000)">${flag || '🏴'}</div>`
   });
   const m = L.marker(latlng, {icon});
-  if (tipHtml) m.bindPopup(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:280, closeButton:false});
+  if (tipHtml) m.bindTooltip(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:280, opacity:1, sticky:false});
   return m;
 }
 
@@ -1208,7 +1208,7 @@ function mkNuke(latlng, color, tipHtml) {
     html:`<div style="width:14px;height:14px;border-radius:50%;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:9px;opacity:.9;box-shadow:0 0 6px ${color}44">&#9762;</div>`
   });
   const m = L.marker(latlng, {icon});
-  if (tipHtml) m.bindPopup(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:300, closeButton:false});
+  if (tipHtml) m.bindTooltip(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:300, opacity:1, sticky:false});
   return m;
 }
 
@@ -1236,7 +1236,8 @@ const basesLayer = L.layerGroup();
 BASES.forEach(b => {
   const flag = b.country.includes('US') ? '\u{1F1FA}\u{1F1F8}' : b.country.includes('Iran') ? '\u{1F1EE}\u{1F1F7}' : b.country.includes('Saudi') ? '\u{1F1F8}\u{1F1E6}' : b.country.includes('Oman') ? '\u{1F1F4}\u{1F1F2}' : '\u{1F3F4}';
   mkDiamond([b.lat, b.lon], '#6a8caf',
-    `<strong>${flag} ${b.name}</strong><span class="tip-blue"><strong>Operator:</strong> ${b.country}<br><strong>Type:</strong> ${b.type}<br>${b.note}</span>`
+    `<strong>${flag} ${b.name}</strong><span class="tip-blue"><strong>Operator:</strong> ${b.country}<br><strong>Type:</strong> ${b.type}<br>${b.note}</span>`,
+    flag
   ).addTo(basesLayer);
 });
 basesLayer.addTo(map);
