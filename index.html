@@ -726,7 +726,6 @@
       <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🇺🇸</span><span style="color:#6a8caf">US base</span> <span style="font-size:10px;width:10px;text-align:center">🇮🇷</span><span style="color:#6a8caf">Iran base</span></div>
       <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">☢</span><span style="color:#c77dff">Nuclear facility</span></div>
       <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🔥</span><span style="color:#ff4500">Fire hotspot</span></div>
-      <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🌍</span><span style="color:#ffd166">Earthquake</span></div>
     </div>
     <!-- Layer Toggle Panel -->
     <div class="layer-toggle">
@@ -734,7 +733,6 @@
       <label class="lt-row"><input type="checkbox" id="tog-bases" checked><span style="font-size:11px">🏴</span><span style="color:#6a8caf">Military Bases</span></label>
       <label class="lt-row"><input type="checkbox" id="tog-nuclear" checked><span style="font-size:11px">☢️</span><span style="color:#c77dff">Nuclear Sites</span></label>
       <label class="lt-row"><input type="checkbox" id="tog-fires" checked><span style="font-size:11px">🔥</span><span style="color:#ff4500">Fires (FIRMS)</span></label>
-      <label class="lt-row"><input type="checkbox" id="tog-quakes" checked><span style="font-size:11px">🌍</span><span style="color:#ffd166">Earthquakes</span></label>
     </div>
   </div>
 
@@ -1286,33 +1284,6 @@ async function fetchFires() {
 fetchFires();
 setInterval(fetchFires, 15 * 60000);
 
-// ── 4. USGS EARTHQUAKES ──
-const quakesLayer = L.layerGroup().addTo(map);
-async function fetchQuakes() {
-  try {
-    const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&maxlatitude=42&minlatitude=12&maxlongitude=70&minlongitude=40&limit=50&orderby=time';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('usgs failed');
-    const data = await res.json();
-    quakesLayer.clearLayers();
-    (data.features || []).forEach(f => {
-      const [lon, lat, depth] = f.geometry.coordinates;
-      const mag = f.properties.mag;
-      const place = f.properties.place || 'Unknown';
-      const time = f.properties.time;
-      const r = mag >= 5 ? 8 : mag >= 4 ? 5.5 : 3.5;
-      const color = mag >= 5 ? '#e63946' : mag >= 4 ? '#f4a261' : '#ffd166';
-      const ago = timeAgo(new Date(time).toISOString());
-      L.circleMarker([lat, lon], {
-        radius:r, fillColor:color, fillOpacity:0.6,
-        color:color, weight:1.5, opacity:0.8
-      }).bindPopup(`<div class="map-tip"><strong>M${mag.toFixed(1)} Earthquake</strong><span style="color:${color}">${place}<br>Depth: ${depth.toFixed(1)} km<br>${ago}</span></div>`, {maxWidth:240, closeButton:false})
-      .addTo(quakesLayer);
-    });
-  } catch(e) { /* silent */ }
-}
-fetchQuakes();
-setInterval(fetchQuakes, 10 * 60000);
 
 // ── LAYER TOGGLE WIRING ──
 document.getElementById('tog-bases').addEventListener('change', function() {
@@ -1323,9 +1294,6 @@ document.getElementById('tog-nuclear').addEventListener('change', function() {
 });
 document.getElementById('tog-fires').addEventListener('change', function() {
   this.checked ? map.addLayer(firesLayer) : map.removeLayer(firesLayer);
-});
-document.getElementById('tog-quakes').addEventListener('change', function() {
-  this.checked ? map.addLayer(quakesLayer) : map.removeLayer(quakesLayer);
 });
 
 // ── LIVE NEWS FEED ──
