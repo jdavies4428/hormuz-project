@@ -1111,22 +1111,11 @@ const KEYWORDS = [
   'pipeline','refinery','barrel','commodity','shipping'
 ];
 
-// Google News RSS — pre-filtered by topic (most reliable, always returns results)
-// Google News parses <source> tags giving us the real outlet name (Bloomberg, Reuters, etc.)
+// Google News RSS — each query returns ~100 items, so 2 feeds gives plenty of coverage
+// Google News <source> tags give us real outlet names (Bloomberg, Reuters, Al Jazeera, etc.)
 const GOOGLE_NEWS_FEEDS = [
-  { url: 'https://news.google.com/rss/search?q=iran+hormuz+oil+strait+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=iran+war+middle+east+oil+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=oil+price+crude+OPEC+when:3d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=site:bloomberg.com+oil+iran+energy+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Bloomberg' },
-  { url: 'https://news.google.com/rss/search?q=site:aljazeera.com+iran+oil+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Al Jazeera' },
-  { url: 'https://news.google.com/rss/search?q=site:news.sky.com+iran+oil+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Sky News' },
-];
-
-// Direct outlet RSS feeds (secondary — many block CORS proxies, but try anyway)
-const DIRECT_FEEDS = [
-  { url: 'https://www.theguardian.com/world/middleeast/rss',           source: 'The Guardian' },
-  { url: 'https://www.theguardian.com/business/oil/rss',               source: 'Guardian Oil' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',source: 'NYT Middle East' },
+  { url: 'https://news.google.com/rss/search?q=iran+hormuz+oil+strait+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=oil+price+crude+OPEC+energy+when:3d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
 ];
 
 function isRelevant(item) {
@@ -1215,7 +1204,7 @@ async function fetchRssXml(feedUrl) {
   // Race all proxies — first text response wins
   try {
     return await Promise.any(proxies.map(async proxy => {
-      const res = await fetchTimeout(proxy, 8000);
+      const res = await fetchTimeout(proxy, 5000);
       if (!res.ok) throw new Error('not ok');
       const text = await res.text();
       // Sanity check — must look like XML
@@ -1226,7 +1215,7 @@ async function fetchRssXml(feedUrl) {
 
   // Last resort: allorigins /get wrapper
   try {
-    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`, 8000);
+    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`, 6000);
     if (res.ok) {
       const wrapper = await res.json();
       if (wrapper && wrapper.contents && wrapper.contents.includes('<')) return wrapper.contents;
@@ -1286,52 +1275,30 @@ function renderFeed(items) {
 
 async function loadRSS() {
   try {
-    // Phase 1: Google News feeds (most reliable, pre-filtered by topic)
-    const gnResults = await Promise.allSettled(GOOGLE_NEWS_FEEDS.map(fetchFeed));
-    let all = gnResults.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-
-    // Render Google News immediately if we have results
-    if (all.length > 0) {
-      renderPartial(all);
-    }
-
-    // Phase 2: Direct outlet feeds (in parallel, don't block)
-    const directResults = await Promise.allSettled(DIRECT_FEEDS.map(fetchFeed));
-    const directItems = directResults.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
-    all.push(...directItems);
-
-    // Separate relevant and general
-    const relevant = all.filter(item => item.relevant);
-    const general = all.filter(item => !item.relevant);
+    // Fetch both Google News feeds in parallel (each returns ~100 items)
+    const results = await Promise.allSettled(GOOGLE_NEWS_FEEDS.map(fetchFeed));
+    let all = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
 
     // Deduplicate by title similarity
     const seen = new Set();
-    function dedup(items) {
-      return items.filter(item => {
-        const key = item.title.slice(0, 50).toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
+    const deduped = all.filter(item => {
+      const key = item.title.slice(0, 50).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-    const uniqueRelevant = dedup(relevant).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-    const uniqueGeneral = dedup(general).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    // Relevant first, then general — sorted by date
+    const relevant = deduped.filter(i => i.relevant).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const general = deduped.filter(i => !i.relevant).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const combined = [...relevant.slice(0, 12), ...general.slice(0, Math.max(0, 15 - relevant.length))].slice(0, 15);
 
-    // Show relevant first, fill remaining slots with general headlines
-    const combined = [...uniqueRelevant.slice(0, 15)];
-    if (combined.length < 10) {
-      combined.push(...uniqueGeneral.slice(0, 10 - combined.length));
-    }
+    renderFeed(combined);
 
-    renderFeed(combined.slice(0, 15));
-
-    // Cache in localStorage for instant load next time
-    try {
-      localStorage.setItem('rss_cache', JSON.stringify({ items: combined.slice(0, 15), ts: Date.now() }));
-    } catch(e) {}
+    // Cache for instant load on revisit
+    try { localStorage.setItem('rss_cache', JSON.stringify({ items: combined, ts: Date.now() })); } catch(e) {}
   } catch (e) {
-    // Try to show cached headlines
+    // Show cached headlines on failure
     try {
       const cached = JSON.parse(localStorage.getItem('rss_cache'));
       if (cached && cached.items && cached.items.length > 0) {
@@ -1343,14 +1310,9 @@ async function loadRSS() {
     } catch(e2) {}
     const feed = document.getElementById('rss-feed');
     feed.innerHTML = `<div style="padding:10px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)">
-      Could not load live feed. Check network / CORS.<br><span style="font-size:8px">Retrying in 3 min...</span>
+      Could not load live feed.<br><span style="font-size:8px">Retrying in 3 min...</span>
     </div>`;
   }
-}
-
-function renderPartial(items) {
-  const sorted = items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-  renderFeed(sorted.slice(0, 8));
 }
 
 // Show cached headlines instantly while fresh ones load
@@ -1363,8 +1325,8 @@ try {
   }
 } catch(e) {}
 
-// Initial load + refresh every 3 minutes
-loadRSS();
+// Delay RSS load so Yahoo Finance prices get proxy priority
+setTimeout(loadRSS, 2000);
 setInterval(loadRSS, 3 * 60 * 1000);
 
 // Animate bars
@@ -1471,10 +1433,24 @@ function parseYahooChart(data) {
 }
 
 async function fetchYahooQuote(symbol) {
-  // Use range=2d for smaller payload, faster response
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
-  const data = await fetchWithProxy(url);
-  return parseYahooChart(data);
+  // Race query1 and query2 through allorigins for best speed
+  const q1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const q2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const urls = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(q1)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(q2)}`,
+    q2, // Try direct — sometimes works from browser without CORS
+  ];
+  try {
+    const data = await Promise.any(urls.map(u => tryProxy(u)));
+    return parseYahooChart(data);
+  } catch(e) {}
+  // Fallback: allorigins /get wrapper
+  try {
+    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(q1)}`, 8000);
+    if (res.ok) { const w = await res.json(); if (w && w.contents) return parseYahooChart(JSON.parse(w.contents)); }
+  } catch(e) {}
+  return null;
 }
 
 function formatPrice(price, currency) {
