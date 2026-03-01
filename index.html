@@ -1275,13 +1275,32 @@ function renderFeed(items) {
 
 async function loadRSS() {
   try {
-    // Fetch both Google News feeds in parallel (each returns ~100 items)
-    const results = await Promise.allSettled(GOOGLE_NEWS_FEEDS.map(fetchFeed));
-    let all = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+    let items = null;
 
-    // Deduplicate by title similarity
+    // Primary: serverless endpoint (fastest, no CORS)
+    try {
+      const res = await fetchTimeout('/api/rss', 5000);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items && data.items.length > 0) {
+          items = data.items;
+          // Tag relevance client-side
+          items.forEach(item => { item.relevant = isRelevant(item); });
+        }
+      }
+    } catch(e) {}
+
+    // Fallback: CORS proxy fetch (for local dev or if serverless fails)
+    if (!items) {
+      const results = await Promise.allSettled(GOOGLE_NEWS_FEEDS.map(fetchFeed));
+      items = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+    }
+
+    if (!items || items.length === 0) throw new Error('no items');
+
+    // Deduplicate
     const seen = new Set();
-    const deduped = all.filter(item => {
+    const deduped = items.filter(item => {
       const key = item.title.slice(0, 50).toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
@@ -1325,8 +1344,8 @@ try {
   }
 } catch(e) {}
 
-// Delay RSS load so Yahoo Finance prices get proxy priority
-setTimeout(loadRSS, 2000);
+// Load RSS (serverless endpoint = no proxy contention with prices)
+loadRSS();
 setInterval(loadRSS, 3 * 60 * 1000);
 
 // Animate bars
@@ -1432,25 +1451,20 @@ function parseYahooChart(data) {
   };
 }
 
-async function fetchYahooQuote(symbol) {
-  // Race query1 and query2 through allorigins for best speed
-  const q1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
-  const q2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
-  const urls = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(q1)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(q2)}`,
-    q2, // Try direct — sometimes works from browser without CORS
-  ];
+// Primary: all 3 quotes in one serverless call (fastest)
+async function fetchAllQuotesServerless() {
   try {
-    const data = await Promise.any(urls.map(u => tryProxy(u)));
-    return parseYahooChart(data);
-  } catch(e) {}
-  // Fallback: allorigins /get wrapper
-  try {
-    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(q1)}`, 8000);
-    if (res.ok) { const w = await res.json(); if (w && w.contents) return parseYahooChart(JSON.parse(w.contents)); }
+    const res = await fetchTimeout('/api/prices', 5000);
+    if (res.ok) return await res.json();
   } catch(e) {}
   return null;
+}
+
+// Fallback: individual quote via CORS proxy (for local dev or if serverless fails)
+async function fetchYahooQuote(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const data = await fetchWithProxy(url);
+  return parseYahooChart(data);
 }
 
 function formatPrice(price, currency) {
@@ -1520,18 +1534,34 @@ async function loadLivePrices() {
   let anySuccess = false;
   const freshQuotes = {};
 
-  const results = await Promise.allSettled(
-    YF_TICKERS.map(async (ticker) => {
-      const quote = await fetchYahooQuote(ticker.symbol);
+  // Try serverless endpoint first — single request, all 3 quotes
+  const batch = await fetchAllQuotesServerless();
+  if (batch) {
+    YF_TICKERS.forEach(ticker => {
+      const quote = batch[ticker.symbol];
       if (quote) {
         updatePriceCard(ticker, quote);
         freshQuotes[ticker.symbol] = quote;
         anySuccess = true;
         if (ticker.symbol === 'BZ=F') updateScenarios(quote.price);
       }
-      return quote;
-    })
-  );
+    });
+  }
+
+  // Fallback: individual CORS proxy calls for any missing quotes
+  if (!anySuccess) {
+    await Promise.allSettled(
+      YF_TICKERS.map(async (ticker) => {
+        const quote = await fetchYahooQuote(ticker.symbol);
+        if (quote) {
+          updatePriceCard(ticker, quote);
+          freshQuotes[ticker.symbol] = quote;
+          anySuccess = true;
+          if (ticker.symbol === 'BZ=F') updateScenarios(quote.price);
+        }
+      })
+    );
+  }
 
   if (anySuccess) cachePrices(freshQuotes);
 

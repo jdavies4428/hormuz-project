@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/prices", "destination": "/api/prices" },
+    { "source": "/api/rss", "destination": "/api/rss" }
+  ]
+}
