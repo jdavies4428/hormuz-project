@@ -113,10 +113,22 @@
   .b-lim { background:rgba(244,162,97,.2); color:var(--gold); }
   .b-off { background:rgba(230,57,70,.15); color:var(--accent); }
 
-  .alert { padding:8px 10px; border-left:2px solid var(--accent); background:rgba(230,57,70,.06); margin-bottom:6px; border-radius:0 3px 3px 0; }
+  .alert { padding:8px 10px; border-left:2px solid var(--accent); background:rgba(230,57,70,.06); margin-bottom:6px; border-radius:0 3px 3px 0; transition:background .2s,border-color .2s,transform .15s; }
+  .alert:hover { background:rgba(230,57,70,.12); transform:translateX(2px); }
   .alert.gold { border-color:var(--gold); background:rgba(244,162,97,.06); }
+  .alert.gold:hover { background:rgba(244,162,97,.12); }
   .alert.teal { border-color:var(--teal); background:rgba(42,157,143,.06); }
-  .alert-t { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+  .alert.teal:hover { background:rgba(42,157,143,.12); }
+  .alert-t { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; display:flex; align-items:center; gap:6px; }
+  .alert-src { display:inline-block; padding:1px 5px; border-radius:2px; font-size:6.5px; font-weight:700; letter-spacing:.8px; }
+  .alert-src.s-bloomberg { background:rgba(255,255,255,.08); color:#f0f0f0; }
+  .alert-src.s-aljazeera { background:rgba(250,150,50,.15); color:#f4a261; }
+  .alert-src.s-sky { background:rgba(69,123,157,.15); color:#457b9d; }
+  .alert-src.s-bbc { background:rgba(187,31,31,.15); color:#e63946; }
+  .alert-src.s-reuters { background:rgba(255,130,50,.12); color:#ff6b35; }
+  .alert-src.s-guardian { background:rgba(42,157,143,.12); color:#2a9d8f; }
+  .alert-src.s-nyt { background:rgba(200,200,200,.1); color:#c8cdd8; }
+  .alert-src.s-default { background:rgba(255,255,255,.05); color:var(--muted); }
   .alert-b { font-size:9.5px; color:var(--text); line-height:1.45; }
   .alert-b strong { color:var(--white); }
 
@@ -662,9 +674,18 @@
       <div class="sec-label" style="margin-bottom:8px">
         <span style="display:flex;align-items:center;gap:6px;flex:1">
           <span id="rss-dot" style="width:6px;height:6px;border-radius:50%;background:#e63946;display:inline-block;animation:blink 1s infinite;flex-shrink:0"></span>
-          LIVE HEADLINES
+          LIVE WIRE
         </span>
         <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
+      </div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">AL JAZEERA</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">BLOOMBERG</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">SKY NEWS</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">BBC</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">REUTERS</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">NYT</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">GUARDIAN</span>
       </div>
       <div id="rss-feed" style="max-height:400px;overflow-y:auto">
         <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
@@ -1077,10 +1098,10 @@ mkCity([24.45, 54.38], 'Abu Dhabi', '#8899aa');
 mkCity([25.26, 55.3], 'Dubai', '#8899aa');
 mkCity([27.1, 57.08], 'Bandar Abbas', '#8899aa', 3);
 
-// ── LIVE RSS FEED ──
-const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+// ── LIVE NEWS FEED ──
+// Uses CORS proxies + DOMParser to fetch RSS XML directly (no rss2json dependency)
+// Primary: Google News RSS (most reliable). Secondary: direct outlet RSS feeds.
 
-// Broadened keyword list for better coverage
 const KEYWORDS = [
   'iran','hormuz','tehran','irgc','khamenei','persian gulf','middle east',
   'oil','crude','brent','opec','tanker','strait','nuclear','israel',
@@ -1090,21 +1111,26 @@ const KEYWORDS = [
   'pipeline','refinery','barrel','commodity','shipping'
 ];
 
-const FEEDS = [
-  { url: 'https://feeds.bbci.co.uk/news/world/rss.xml',                source: 'BBC World' },
-  { url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml',    source: 'BBC Middle East' },
-  { url: 'https://www.aljazeera.com/xml/rss/all.xml',                  source: 'Al Jazeera' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',source: 'NYT Middle East' },
-  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',     source: 'NYT World' },
-  { url: 'https://feeds.reuters.com/reuters/topNews',                   source: 'Reuters' },
-  { url: 'https://rss.cnn.com/rss/edition_world.rss',                  source: 'CNN' },
-  { url: 'https://feeds.skynews.com/feeds/rss/world.xml',              source: 'Sky News' },
+// Google News RSS — pre-filtered by topic (most reliable, always returns results)
+// Google News parses <source> tags giving us the real outlet name (Bloomberg, Reuters, etc.)
+const GOOGLE_NEWS_FEEDS = [
+  { url: 'https://news.google.com/rss/search?q=iran+hormuz+oil+strait+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=iran+war+middle+east+oil+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=oil+price+crude+OPEC+when:3d&hl=en-US&gl=US&ceid=US:en', source: 'Google News' },
+  { url: 'https://news.google.com/rss/search?q=site:bloomberg.com+oil+iran+energy+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Bloomberg' },
+  { url: 'https://news.google.com/rss/search?q=site:aljazeera.com+iran+oil+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Al Jazeera' },
+  { url: 'https://news.google.com/rss/search?q=site:news.sky.com+iran+oil+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en', source: 'Sky News' },
+];
+
+// Direct outlet RSS feeds (secondary — many block CORS proxies, but try anyway)
+const DIRECT_FEEDS = [
   { url: 'https://www.theguardian.com/world/middleeast/rss',           source: 'The Guardian' },
   { url: 'https://www.theguardian.com/business/oil/rss',               source: 'Guardian Oil' },
+  { url: 'https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml',source: 'NYT Middle East' },
 ];
 
 function isRelevant(item) {
-  const text = ((item.title || '') + ' ' + (item.description || '')).toLowerCase();
+  const text = ((item.title || '') + ' ' + (item.desc || '')).toLowerCase();
   return KEYWORDS.some(k => text.includes(k));
 }
 
@@ -1135,19 +1161,99 @@ function alertClass(dateStr) {
   return 'teal';
 }
 
+// Parse RSS/Atom XML into items array using DOMParser
+function parseRssXml(xmlText, source) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    if (doc.querySelector('parsererror')) return [];
+
+    const items = [];
+
+    // Try RSS 2.0 <item> elements first
+    const rssItems = doc.querySelectorAll('item');
+    if (rssItems.length > 0) {
+      rssItems.forEach(item => {
+        const title = stripHtml(item.querySelector('title')?.textContent || '');
+        const link = item.querySelector('link')?.textContent?.trim() || '';
+        const desc = stripHtml(item.querySelector('description')?.textContent || '').slice(0, 180);
+        const pubDate = item.querySelector('pubDate')?.textContent || '';
+        // Google News wraps the real source in <source> tag
+        const realSource = item.querySelector('source')?.textContent || source;
+        if (title) {
+          items.push({ title, desc, link, pubDate, source: realSource, relevant: false });
+        }
+      });
+      return items;
+    }
+
+    // Try Atom <entry> elements
+    const entries = doc.querySelectorAll('entry');
+    entries.forEach(entry => {
+      const title = stripHtml(entry.querySelector('title')?.textContent || '');
+      const linkEl = entry.querySelector('link[href]');
+      const link = linkEl ? linkEl.getAttribute('href') : '';
+      const desc = stripHtml((entry.querySelector('summary') || entry.querySelector('content'))?.textContent || '').slice(0, 180);
+      const pubDate = (entry.querySelector('published') || entry.querySelector('updated'))?.textContent || '';
+      if (title) {
+        items.push({ title, desc, link, pubDate, source, relevant: false });
+      }
+    });
+    return items;
+  } catch (e) {
+    return [];
+  }
+}
+
+// Fetch RSS XML via CORS proxy — race multiple proxies for speed
+async function fetchRssXml(feedUrl) {
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(feedUrl)}`,
+  ];
+
+  // Race all proxies — first text response wins
+  try {
+    return await Promise.any(proxies.map(async proxy => {
+      const res = await fetchTimeout(proxy, 8000);
+      if (!res.ok) throw new Error('not ok');
+      const text = await res.text();
+      // Sanity check — must look like XML
+      if (!text.includes('<') || text.length < 100) throw new Error('not xml');
+      return text;
+    }));
+  } catch (e) {}
+
+  // Last resort: allorigins /get wrapper
+  try {
+    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`, 8000);
+    if (res.ok) {
+      const wrapper = await res.json();
+      if (wrapper && wrapper.contents && wrapper.contents.includes('<')) return wrapper.contents;
+    }
+  } catch (e) {}
+
+  return null;
+}
+
 async function fetchFeed(feed) {
-  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}`;
-  const r = await fetchTimeout(url, 10000);
-  const json = await r.json();
-  if (!json.items) return [];
-  return json.items.map(item => ({
-    title: stripHtml(item.title),
-    desc: stripHtml(item.description).slice(0, 180),
-    link: item.link,
-    pubDate: item.pubDate,
-    source: feed.source,
-    relevant: isRelevant(item)
-  }));
+  const xml = await fetchRssXml(feed.url);
+  if (!xml) return [];
+  const items = parseRssXml(xml, feed.source);
+  items.forEach(item => { item.relevant = isRelevant(item); });
+  return items;
+}
+
+function getSourceClass(source) {
+  const s = (source || '').toLowerCase();
+  if (s.includes('bloomberg')) return 's-bloomberg';
+  if (s.includes('jazeera')) return 's-aljazeera';
+  if (s.includes('sky')) return 's-sky';
+  if (s.includes('bbc')) return 's-bbc';
+  if (s.includes('reuters')) return 's-reuters';
+  if (s.includes('guardian')) return 's-guardian';
+  if (s.includes('nyt') || s.includes('times')) return 's-nyt';
+  return 's-default';
 }
 
 function renderFeed(items) {
@@ -1160,39 +1266,39 @@ function renderFeed(items) {
     return;
   }
 
-  feed.innerHTML = items.map(item => `
-    <a href="${item.link || '#'}" target="_blank" rel="noopener" style="text-decoration:none;display:block;margin-bottom:6px">
-      <div class="alert ${alertClass(item.pubDate)}" style="cursor:pointer;transition:border-color .2s">
-        <div class="alert-t">${timeAgo(item.pubDate)} · ${item.source}</div>
+  feed.innerHTML = items.map(item => {
+    const ac = alertClass(item.pubDate);
+    const ta = timeAgo(item.pubDate);
+    const srcClass = getSourceClass(item.source);
+    return `<a href="${item.link || '#'}" target="_blank" rel="noopener" style="text-decoration:none;display:block;margin-bottom:6px">
+      <div class="alert ${ac}" style="cursor:pointer">
+        <div class="alert-t">${ta ? ta + ' · ' : ''}<span class="alert-src ${srcClass}">${item.source}</span></div>
         <div class="alert-b" style="font-size:9.5px"><strong>${item.title}</strong>${item.desc && item.desc !== item.title ? '<br><span style="opacity:.75">'+item.desc.slice(0,130)+(item.desc.length>130?'…':'')+'</span>' : ''}</div>
       </div>
-    </a>
-  `).join('');
+    </a>`;
+  }).join('');
 
+  const dot = document.getElementById('rss-dot');
+  if (dot) dot.style.background = 'var(--green)';
   const upd = document.getElementById('rss-updated');
   if (upd) upd.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
 async function loadRSS() {
   try {
-    // Stagger feeds to avoid rss2json rate limits (batch of 3)
-    const batches = [];
-    for (let i = 0; i < FEEDS.length; i += 3) {
-      batches.push(FEEDS.slice(i, i + 3));
+    // Phase 1: Google News feeds (most reliable, pre-filtered by topic)
+    const gnResults = await Promise.allSettled(GOOGLE_NEWS_FEEDS.map(fetchFeed));
+    let all = gnResults.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+
+    // Render Google News immediately if we have results
+    if (all.length > 0) {
+      renderPartial(all);
     }
 
-    let all = [];
-    for (const batch of batches) {
-      const results = await Promise.allSettled(batch.map(fetchFeed));
-      const items = results
-        .filter(r => r.status === 'fulfilled')
-        .flatMap(r => r.value);
-      all.push(...items);
-      // Render progressively — show what we have so far
-      if (all.length > 0 && batch === batches[0]) {
-        renderPartial(all);
-      }
-    }
+    // Phase 2: Direct outlet feeds (in parallel, don't block)
+    const directResults = await Promise.allSettled(DIRECT_FEEDS.map(fetchFeed));
+    const directItems = directResults.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+    all.push(...directItems);
 
     // Separate relevant and general
     const relevant = all.filter(item => item.relevant);
@@ -1219,7 +1325,22 @@ async function loadRSS() {
     }
 
     renderFeed(combined.slice(0, 15));
+
+    // Cache in localStorage for instant load next time
+    try {
+      localStorage.setItem('rss_cache', JSON.stringify({ items: combined.slice(0, 15), ts: Date.now() }));
+    } catch(e) {}
   } catch (e) {
+    // Try to show cached headlines
+    try {
+      const cached = JSON.parse(localStorage.getItem('rss_cache'));
+      if (cached && cached.items && cached.items.length > 0) {
+        renderFeed(cached.items);
+        const upd = document.getElementById('rss-updated');
+        if (upd) upd.textContent = 'Cached · retrying...';
+        return;
+      }
+    } catch(e2) {}
     const feed = document.getElementById('rss-feed');
     feed.innerHTML = `<div style="padding:10px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)">
       Could not load live feed. Check network / CORS.<br><span style="font-size:8px">Retrying in 3 min...</span>
@@ -1231,6 +1352,16 @@ function renderPartial(items) {
   const sorted = items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
   renderFeed(sorted.slice(0, 8));
 }
+
+// Show cached headlines instantly while fresh ones load
+try {
+  const cached = JSON.parse(localStorage.getItem('rss_cache'));
+  if (cached && cached.items && (Date.now() - cached.ts < 600000)) {
+    renderFeed(cached.items);
+    const upd = document.getElementById('rss-updated');
+    if (upd) upd.textContent = 'Cached · refreshing...';
+  }
+} catch(e) {}
 
 // Initial load + refresh every 3 minutes
 loadRSS();
@@ -1302,7 +1433,6 @@ async function tryProxy(proxyUrl) {
 async function fetchWithProxy(url) {
   const proxyUrls = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
   // Race all proxies — first valid JSON wins

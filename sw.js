@@ -1,4 +1,4 @@
-const CACHE = 'hormuz-v1';
+const CACHE = 'hormuz-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
