@@ -1238,44 +1238,87 @@ const YF_TICKERS = [
 const CORS_PROXIES = [
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
 ];
+
+function fetchTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 
 async function fetchWithProxy(url) {
   for (const proxy of CORS_PROXIES) {
     try {
-      const res = await fetch(proxy(url), { signal: AbortSignal.timeout(8000) });
+      const res = await fetchTimeout(proxy(url), 10000);
       if (!res.ok) continue;
-      return await res.json();
+      const text = await res.text();
+      try { return JSON.parse(text); } catch(e) { continue; }
     } catch (e) {
       continue;
     }
   }
+  // Last resort: try allorigins /get endpoint which wraps in JSON
+  try {
+    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, 10000);
+    if (res.ok) {
+      const wrapper = await res.json();
+      if (wrapper && wrapper.contents) return JSON.parse(wrapper.contents);
+    }
+  } catch(e) {}
   return null;
 }
 
 async function fetchYahooQuote(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
-  const data = await fetchWithProxy(url);
-  if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
+  // Try chart endpoint first (richer data)
+  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+  const data = await fetchWithProxy(chartUrl);
 
-  const result = data.chart.result[0];
-  const meta = result.meta;
-  const closes = result.indicators.quote[0].close;
-  const validCloses = closes.filter(p => p !== null && p !== undefined);
+  if (data && data.chart && data.chart.result && data.chart.result[0]) {
+    const result = data.chart.result[0];
+    const meta = result.meta;
+    const closes = result.indicators.quote[0].close;
+    const validCloses = closes.filter(p => p !== null && p !== undefined);
 
-  if (validCloses.length < 2) return null;
+    if (validCloses.length >= 2) {
+      const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
+      const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
+      const change = price - prevClose;
+      const changePct = (change / prevClose) * 100;
+      return {
+        price: Math.round(price * 100) / 100,
+        change: Math.round(change * 100) / 100,
+        changePct: Math.round(changePct * 100) / 100,
+        currency: meta.currency || 'USD',
+      };
+    }
+  }
 
-  const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
-  const prevClose = validCloses[validCloses.length - 2];
-  const change = price - prevClose;
-  const changePct = (change / prevClose) * 100;
+  // Fallback: try query2 endpoint
+  const q2Url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+  const data2 = await fetchWithProxy(q2Url);
 
-  return {
-    price: Math.round(price * 100) / 100,
-    change: Math.round(change * 100) / 100,
-    changePct: Math.round(changePct * 100) / 100,
-    currency: meta.currency || 'USD',
-  };
+  if (data2 && data2.chart && data2.chart.result && data2.chart.result[0]) {
+    const result = data2.chart.result[0];
+    const meta = result.meta;
+    const closes = result.indicators.quote[0].close;
+    const validCloses = closes.filter(p => p !== null && p !== undefined);
+
+    if (validCloses.length >= 2) {
+      const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
+      const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
+      const change = price - prevClose;
+      const changePct = (change / prevClose) * 100;
+      return {
+        price: Math.round(price * 100) / 100,
+        change: Math.round(change * 100) / 100,
+        changePct: Math.round(changePct * 100) / 100,
+        currency: meta.currency || 'USD',
+      };
+    }
+  }
+
+  return null;
 }
 
 function formatPrice(price, currency) {
