@@ -1136,7 +1136,7 @@ function alertClass(dateStr) {
 }
 
 async function fetchFeed(feed) {
-  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=20`;
+  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}`;
   const r = await fetchTimeout(url, 10000);
   const json = await r.json();
   if (!json.items) return [];
