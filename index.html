@@ -46,7 +46,7 @@
     --green: #52b788;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow-x: hidden; overflow-y: auto; background: var(--bg); font-family: 'IBM Plex Sans', sans-serif; color: var(--text); }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: 'IBM Plex Sans', sans-serif; color: var(--text); }
 
   .header {
     height: 68px; background: #080a12;
@@ -78,18 +78,16 @@
   @-webkit-keyframes scroll { 0%{-webkit-transform:translateX(0)} 100%{-webkit-transform:translateX(-50%)} }
   @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
-  .layout { display:flex; height:calc(100vh - 94px); flex-shrink:0; }
+  .layout { display:flex; height:calc(100vh - 94px); }
 
   .panel { width:280px; flex-shrink:0; display:flex; flex-direction:column; overflow-y:auto; background:var(--panel); }
   .panel::-webkit-scrollbar { width:2px; }
   .panel::-webkit-scrollbar-thumb { background:var(--border); }
   .panel-l { border-right:1px solid var(--border); }
+  .panel-r { border-left:1px solid var(--border); }
 
-  /* Bottom section — replaces right sidebar */
-  .bottom-section { background:var(--panel); border-top:1px solid var(--border); overflow-x:auto; overflow-y:hidden; }
-  .bottom-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
-  .bottom-grid > .sec { border-bottom:none; border-right:1px solid var(--border); }
-  .bottom-grid > .sec:last-child { border-right:none; }
+  #rss-feed { scrollbar-width:none; }
+  #rss-feed::-webkit-scrollbar { display:none; }
 
   .sec { padding:13px 15px; border-bottom:1px solid var(--border); }
   .sec-label { font-family:'IBM Plex Mono',monospace; font-size:7.5px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
@@ -275,6 +273,26 @@
   .ltv-loading { display:flex; align-items:center; justify-content:center; position:absolute; inset:0; background:#000; z-index:1; }
   .ltv-loading span { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:1px; }
 
+  /* ── Layer Toggle Panel ── */
+  .layer-toggle {
+    position:absolute; top:10px; right:10px; z-index:1000;
+    background:rgba(8,10,18,.92); border:1px solid var(--border);
+    border-radius:4px; padding:9px 12px; backdrop-filter:blur(12px);
+  }
+  .lt-title { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; }
+  .lt-row { display:flex; align-items:center; gap:7px; margin-bottom:5px; font-size:9.5px; cursor:pointer; }
+  .lt-row:last-child { margin-bottom:0; }
+  .lt-row input[type="checkbox"] {
+    appearance:none; -webkit-appearance:none; width:12px; height:12px; border:1px solid var(--muted);
+    border-radius:2px; background:transparent; cursor:pointer; position:relative; flex-shrink:0;
+  }
+  .lt-row input[type="checkbox"]:checked { background:var(--blue); border-color:var(--blue); }
+  .lt-row input[type="checkbox"]:checked::after {
+    content:''; position:absolute; top:1px; left:3px; width:4px; height:7px;
+    border:solid #fff; border-width:0 1.5px 1.5px 0; transform:rotate(45deg);
+  }
+  .lt-icon { width:10px; height:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 900px) {
     html, body { height: auto; overflow: auto; -webkit-overflow-scrolling: touch; }
@@ -307,11 +325,7 @@
     .panel-l { order: 1; }
     .map-wrap { order: 2; height: 55vh; min-height: 320px; flex: none; position: relative; }
     #map { width: 100%; height: 55vh; min-height: 320px; }
-
-    .bottom-section > div:first-child { flex-direction: column; }
-    .bottom-section > div:first-child > .ltv { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
-    .bottom-grid { grid-template-columns: 1fr; }
-    .bottom-grid > .sec { border-right: none; border-bottom: 1px solid var(--border); }
+    .panel-r { order: 3; }
 
     .sec { padding: 14px 16px; }
     .sec-label { font-size: 8px; }
@@ -355,6 +369,8 @@
     .alert { padding: 10px 12px; }
     .alert-t { font-size: 8px; }
     .alert-b { font-size: 10.5px; }
+    #rss-feed { max-height: none !important; }
+
     .precedent { padding: 8px 0; }
     .prec-event { font-size: 11px; }
     .prec-impact { font-size: 11px; }
@@ -703,20 +719,29 @@
       <div class="ml-row"><div class="ml-dotl" style="background:#ff6b35"></div><span>Iranian counter-strike</span></div>
       <div class="ml-row"><div class="ml-dotl" style="background:#457b9d"></div><span>US naval asset</span></div>
       <div class="ml-row"><div class="ml-dotl" style="background:#52b788"></div><span>Pipeline terminal</span></div>
+      <div style="height:5px"></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#6a8caf;transform:rotate(45deg);border-radius:1px;width:8px;height:8px"></div><span style="color:#6a8caf">Military base</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#c77dff"></div><span style="color:#c77dff">Nuclear facility</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#ff4500;width:6px;height:6px"></div><span style="color:#ff4500">Fire hotspot</span></div>
+      <div class="ml-row"><div class="ml-dotl" style="background:#ffd166;width:6px;height:6px;border:1px solid #f4a261"></div><span style="color:#ffd166">Earthquake</span></div>
+    </div>
+    <!-- Layer Toggle Panel -->
+    <div class="layer-toggle">
+      <div class="lt-title">Data Layers</div>
+      <label class="lt-row"><input type="checkbox" id="tog-bases" checked><div class="lt-icon"><div style="width:8px;height:8px;background:#6a8caf;transform:rotate(45deg);border-radius:1px"></div></div><span style="color:#6a8caf">Military Bases</span></label>
+      <label class="lt-row"><input type="checkbox" id="tog-nuclear" checked><div class="lt-icon"><div style="width:8px;height:8px;border-radius:50%;background:#c77dff"></div></div><span style="color:#c77dff">Nuclear Sites</span></label>
+      <label class="lt-row"><input type="checkbox" id="tog-fires" checked><div class="lt-icon"><div style="width:6px;height:6px;border-radius:50%;background:#ff4500"></div></div><span style="color:#ff4500">Fires (FIRMS)</span></label>
+      <label class="lt-row"><input type="checkbox" id="tog-quakes" checked><div class="lt-icon"><div style="width:6px;height:6px;border-radius:50%;background:#ffd166;border:1px solid #f4a261"></div></div><span style="color:#ffd166">Earthquakes</span></label>
     </div>
   </div>
 
   </div>
 
-</div>
+  <!-- RIGHT PANEL -->
+  <div class="panel panel-r">
 
-<!-- BOTTOM SECTION — was right sidebar -->
-<div class="bottom-section">
-
-  <!-- Row 1: Live TV + Live Wire side by side -->
-  <div style="display:flex; border-bottom:1px solid var(--border)">
     <!-- LIVE TV -->
-    <div class="ltv" style="width:340px;flex-shrink:0;border-right:1px solid var(--border);border-bottom:none">
+    <div class="ltv">
       <div class="ltv-label">
         <span style="display:flex;align-items:center;gap:5px"><span class="ltv-live-dot" id="ltv-dot"></span>LIVE TV</span>
       </div>
@@ -741,7 +766,7 @@
     </div>
 
     <!-- LIVE WIRE (Headlines) -->
-    <div class="sec" style="flex:1;border-bottom:none;overflow-y:auto;max-height:280px">
+    <div class="sec" style="flex-shrink:0">
       <div class="sec-label" style="margin-bottom:8px">
         <span style="display:flex;align-items:center;gap:6px;flex:1">
           <span id="rss-dot" style="width:6px;height:6px;border-radius:50%;background:#e63946;display:inline-block;animation:blink 1s infinite;flex-shrink:0"></span>
@@ -749,17 +774,14 @@
         </span>
         <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
       </div>
-      <div id="rss-feed" style="overflow-y:auto">
+      <div id="rss-feed" style="max-height:400px;overflow-y:auto">
         <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
           ⟳ Fetching live headlines...
         </div>
       </div>
       <div id="rss-error" style="display:none;padding:8px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)"></div>
     </div>
-  </div>
 
-  <!-- Row 2: Analysis grid -->
-  <div class="bottom-grid">
 
     <!-- HISTORICAL PRECEDENTS -->
     <div class="sec">
@@ -947,6 +969,7 @@
     </div>
 
   </div>
+
 </div>
 
 <script>
