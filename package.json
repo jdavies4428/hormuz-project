@@ -1,0 +1,23 @@
+{
+  "name": "hormuz-project",
+  "version": "1.0.0",
+  "description": "Interactive infographic with live RSS news feed.",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdavies4428/hormuz-project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jdavies4428/hormuz-project/issues"
+  },
+  "homepage": "https://github.com/jdavies4428/hormuz-project#readme",
+  "dependencies": {
+    "@vercel/analytics": "^1.6.1"
+  }
+}
