@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  width:1200px; height:630px; overflow:hidden;
+  background:#080a12;
+  font-family:'IBM Plex Mono',monospace;
+  position:relative;
+}
+
+/* Subtle grid overlay */
+body::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    linear-gradient(rgba(230,57,70,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(230,57,70,.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  z-index:0;
+}
+
+/* Red glow top */
+.glow-top {
+  position:absolute; top:-80px; left:50%; transform:translateX(-50%);
+  width:800px; height:250px;
+  background:radial-gradient(ellipse, rgba(230,57,70,.15) 0%, transparent 70%);
+  z-index:0;
+}
+
+/* Orange glow bottom-right */
+.glow-br {
+  position:absolute; bottom:-40px; right:-40px;
+  width:400px; height:300px;
+  background:radial-gradient(ellipse, rgba(244,162,97,.08) 0%, transparent 70%);
+  z-index:0;
+}
+
+.content {
+  position:relative; z-index:1;
+  width:100%; height:100%;
+  display:flex; flex-direction:column;
+  padding:48px 60px 40px;
+}
+
+/* Breaking banner */
+.breaking {
+  display:inline-flex; align-items:center; gap:8px;
+  margin-bottom:20px;
+}
+.breaking-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:#e63946;
+  box-shadow:0 0 12px #e63946, 0 0 24px rgba(230,57,70,.4);
+}
+.breaking-text {
+  font-size:11px; font-weight:700; letter-spacing:3px;
+  color:#e63946; text-transform:uppercase;
+}
+
+/* Main title */
+.title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:96px; line-height:.9; letter-spacing:3px;
+  color:#ffffff;
+  margin-bottom:6px;
+}
+.title span { color:#e63946; }
+
+/* Tagline */
+.tagline {
+  font-size:16px; color:rgba(200,205,213,.7);
+  letter-spacing:1px; margin-bottom:auto;
+  max-width:700px; line-height:1.5;
+}
+.tagline strong { color:#f4a261; font-weight:600; }
+
+/* Stats row */
+.stats {
+  display:flex; gap:0; margin-top:20px;
+}
+.stat {
+  flex:1;
+  padding:18px 24px;
+  border-left:2px solid rgba(230,57,70,.3);
+}
+.stat:first-child { border-left:2px solid #e63946; }
+.stat-value {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px; line-height:1; letter-spacing:1px;
+}
+.stat-value.red { color:#e63946; }
+.stat-value.gold { color:#f4a261; }
+.stat-value.teal { color:#2ec4b6; }
+.stat-value.blue { color:#64b4ff; }
+.stat-label {
+  font-size:10px; color:rgba(200,205,213,.45);
+  letter-spacing:1.5px; text-transform:uppercase;
+  margin-top:4px;
+}
+
+/* Bottom bar */
+.bottom-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:24px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.live-tag {
+  display:flex; align-items:center; gap:6px;
+  font-size:10px; color:rgba(200,205,213,.35); letter-spacing:2px;
+}
+.live-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:#2ec4b6;
+  box-shadow:0 0 8px #2ec4b6;
+}
+.url {
+  font-size:11px; color:rgba(200,205,213,.25); letter-spacing:1px;
+}
+</style>
+</head>
+<body>
+  <div class="glow-top"></div>
+  <div class="glow-br"></div>
+  <div class="content">
+    <div class="breaking">
+      <div class="breaking-dot"></div>
+      <div class="breaking-text">Live Monitor</div>
+    </div>
+
+    <div class="title">OIL — IRAN WAR<br><span>MONITOR</span></div>
+
+    <div class="tagline">
+      The chokepoint that controls the global economy.<br>
+      Live prices. Satellite fire detection. Every base mapped.
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value red">20M b/d</div>
+        <div class="stat-label">Oil flow at risk</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value gold">$72+</div>
+        <div class="stat-label">Brent crude live</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value teal">84%</div>
+        <div class="stat-label">Asia-bound via Hormuz</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value blue">13%</div>
+        <div class="stat-label">Bypass capacity</div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="live-tag"><div class="live-dot"></div> REAL-TIME DATA · NASA FIRMS · YAHOO FINANCE · GOOGLE NEWS</div>
+      <div class="url">iran-hormuz-oil.vercel.app</div>
+    </div>
+  </div>
+</body>
+</html>
