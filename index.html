@@ -718,9 +718,6 @@
         <span style="color:#5a6278">Goreh-Jask (inactive)</span>
       </div>
       <div style="height:5px"></div>
-      <div class="ml-row"><div class="ml-dotl" style="background:#e63946"></div><span>US/Israeli airstrike</span></div>
-      <div class="ml-row"><div class="ml-dotl" style="background:#ff6b35"></div><span>Iranian counter-strike</span></div>
-      <div class="ml-row"><div class="ml-dotl" style="background:#457b9d"></div><span>US naval asset</span></div>
       <div class="ml-row"><div class="ml-dotl" style="background:#52b788"></div><span>Pipeline terminal</span></div>
       <div style="height:5px"></div>
       <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🇺🇸</span><span style="color:#6a8caf">US base</span> <span style="font-size:10px;width:10px;text-align:center">🇮🇷</span><span style="color:#6a8caf">Iran base</span></div>
@@ -1050,7 +1047,6 @@ function arrowHead(latlng, color) {
 
 // ── REGION LABELS ──
 mkLabel([32, 52], `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:rgba(230,57,70,.45);letter-spacing:2px">IRAN</span>`);
-mkLabel([33.5, 52.5], `<span style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(230,57,70,.5);letter-spacing:2px">⚠ ACTIVE COMBAT ZONE</span>`);
 mkLabel([24, 43.5], `<span style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(255,255,255,.18);letter-spacing:1px">SAUDI ARABIA</span>`);
 mkLabel([33, 43], `<span style="font-family:'Bebas Neue',sans-serif;font-size:12px;color:rgba(255,255,255,.18)">IRAQ</span>`);
 mkLabel([23.5, 57], `<span style="font-family:'Bebas Neue',sans-serif;font-size:11px;color:rgba(255,255,255,.15)">OMAN</span>`);
@@ -1141,34 +1137,6 @@ mkPulse([25.12, 56.34], '#2a9d8f', 6, 0.3,
   `<strong>Fujairah Terminal, UAE</strong><span class="tip-teal">UAE ADCOP pipeline terminus<br>1.8M b/d capacity (near full at ~1.5M)<br>Gulf of Oman — outside Hormuz chokepoint<br><span style="color:#5a6278">⚠ Only ~65km from Iranian coast — vulnerable to ASCM/drone attack</span></span>`);
 mkPulse([25.65, 57.78], '#5a6278', 5, 0,
   `<strong>Jask Terminal, Iran</strong><span style="color:#5a6278">Goreh-Jask pipeline terminus<br>Inactive since Sep 2024<br>Would be offline in any conflict scenario</span>`);
-
-// ── STRIKE SITES — US/Israeli (red) ──
-mkPulse([35.69, 51.39], '#e63946', 9, 0,
-  `<strong>Tehran ⚡ STRUCK</strong><span class="tip-red">US/Israeli joint strike · Multiple sites hit<br>Near Khamenei's offices · Smoke rising<br>Missiles on University St &amp; Jomhouri area</span>`);
-mkPulse([33.35, 44.4], '#e63946', 7, 0.4,
-  `<strong>Baghdad ⚡ Kata'ib Hezbollah HQ</strong><span class="tip-red">Iran-backed paramilitary HQ struck<br>Near Baghdad, Iraq</span>`);
-mkPulse([33.6, 46.3], '#e63946', 6, 0.7,
-  `<strong>Ilam Province ⚡</strong><span class="tip-red">Western Iran · Israeli airstrike confirmed<br>Military and defense sites targeted</span>`);
-mkPulse([27.1, 57.08], '#e63946', 6, 1.0,
-  `<strong>Minab, Hormozgan ⚡</strong><span class="tip-red">Near Strait of Hormuz · Southern Iran<br>Elementary school struck · 40+ killed (IRNA)</span>`);
-mkPulse([28.92, 50.83], '#e63946', 6, 0.3,
-  `<strong>Bushehr Region ⚡</strong><span class="tip-red">Nuclear &amp; military infrastructure<br>Major target site</span>`);
-mkPulse([36.32, 59.56], '#e63946', 5, 0.6,
-  `<strong>Mashhad ⚡</strong><span class="tip-red">Iran's second city · Strikes reported</span>`);
-
-// ── IRANIAN COUNTER-STRIKES (orange) ──
-mkPulse([26.22, 50.59], '#ff6b35', 8, 0.5,
-  `<strong>Manama, Bahrain ⚡ COUNTER-STRIKE</strong><span class="tip-orange">Iranian missiles strike US Navy HQ<br>US 5th Fleet headquarters</span>`);
-mkPulse([32.8, 35.1], '#ff6b35', 6, 0.9,
-  `<strong>Northern Israel ⚡</strong><span class="tip-orange">Iranian retaliatory missile strikes<br>Air defenses intercept; multiple impacts</span>`);
-
-// ── US NAVAL ASSETS (blue) ──
-mkPulse([23.5, 60.5], '#457b9d', 7, 0,
-  `<strong>USS Abraham Lincoln (CVN-72)</strong><span class="tip-blue">Carrier Strike Group · Gulf of Oman<br>F-35 shot down Iranian drone Feb 3<br><span style="color:#5a6278">~70 aircraft · Aegis escort screen</span></span>`);
-mkPulse([24.9, 58.2], '#457b9d', 6, 0.6,
-  `<strong>USS McFaul (DDG-74)</strong><span class="tip-blue">Guided missile destroyer<br>Escorted US tanker through Hormuz, Feb 3<br><span style="color:#5a6278">96 VLS cells · SM-2/SM-6 air defense</span></span>`);
-mkPulse([25.2, 56.7], '#457b9d', 6, 1.2,
-  `<strong>2nd CVN Strike Group</strong><span class="tip-blue">Additional carrier force deployed<br>Gulf of Oman / Arabian Sea<br><span style="color:#5a6278">MCM assets embarked for mine countermeasures</span></span>`);
 
 // ── CITIES ──
 mkCity([35.69, 51.39], 'Tehran', '#cc4455', 5);
