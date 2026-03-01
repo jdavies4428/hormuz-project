@@ -1,6 +1,6 @@
 // Vercel Serverless Function — proxies NASA FIRMS fire hotspot data
-// Uses the open country-level CSV endpoint (no API key required)
 
+const FIRMS_KEY = process.env.FIRMS_MAP_KEY;
 const COUNTRIES = ['IRN', 'IRQ', 'SAU', 'ARE', 'QAT', 'OMN', 'KWT', 'BHR'];
 
 async function fetchWithTimeout(url, ms) {
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
   await Promise.all(
     COUNTRIES.map(async (country) => {
       try {
-        const url = `https://firms.modaps.eosdis.nasa.gov/api/country/csv/VIIRS_SNPP_NRT/${country}/1`;
+        const url = `https://firms.modaps.eosdis.nasa.gov/api/country/csv/${FIRMS_KEY}/VIIRS_SNPP_NRT/${country}/1`;
         const response = await fetchWithTimeout(url, 10000);
         if (!response.ok) return;
         const text = await response.text();
