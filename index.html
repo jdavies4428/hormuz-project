@@ -29,6 +29,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
 <style>
   :root {
     --bg: #0a0b0f;
@@ -245,6 +246,30 @@
   .ts-time { font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:700; }
   .ts-detail { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); }
 
+  /* ── LIVE TV ── */
+  .ltv { padding:13px 15px; border-bottom:1px solid var(--border); }
+  .ltv-label { font-family:'IBM Plex Mono',monospace; font-size:7.5px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
+  .ltv-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .ltv-primary { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:3px; overflow:hidden; cursor:pointer; }
+  .ltv-primary iframe { width:100%; height:100%; border:0; pointer-events:none; }
+  .ltv-primary.interactive iframe { pointer-events:auto; }
+  .ltv-overlay { position:absolute; bottom:0; left:0; right:0; padding:6px 8px; background:linear-gradient(transparent, rgba(0,0,0,.85)); display:flex; align-items:center; justify-content:space-between; z-index:2; transition:opacity .3s; }
+  .ltv-primary:hover .ltv-overlay { opacity:1; }
+  .ltv-ch-name { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#fff; font-weight:600; letter-spacing:1px; text-transform:uppercase; }
+  .ltv-live-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); display:inline-block; animation:blink 1s infinite; margin-right:5px; }
+  .ltv-live-dot.offline { background:var(--muted); animation:none; }
+  .ltv-mute-btn { background:none; border:1px solid rgba(255,255,255,.25); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:7px; letter-spacing:1px; padding:2px 7px; border-radius:2px; cursor:pointer; transition:background .2s, border-color .2s; text-transform:uppercase; }
+  .ltv-mute-btn:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.5); }
+  .ltv-mute-btn.unmuted { background:rgba(230,57,70,.2); border-color:var(--accent); color:var(--accent); }
+  .ltv-thumbs { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:4px; }
+  .ltv-thumb { position:relative; aspect-ratio:16/9; background:#000; border-radius:2px; overflow:hidden; cursor:pointer; border:1px solid transparent; transition:border-color .2s, opacity .2s; opacity:.6; }
+  .ltv-thumb:hover { opacity:1; border-color:var(--border); }
+  .ltv-thumb.active { opacity:1; border-color:var(--accent); }
+  .ltv-thumb iframe { width:100%; height:100%; border:0; pointer-events:none; }
+  .ltv-thumb-label { position:absolute; bottom:0; left:0; right:0; padding:2px 5px; background:linear-gradient(transparent, rgba(0,0,0,.9)); font-family:'IBM Plex Mono',monospace; font-size:6.5px; color:rgba(255,255,255,.8); letter-spacing:.8px; text-transform:uppercase; }
+  .ltv-loading { display:flex; align-items:center; justify-content:center; position:absolute; inset:0; background:#000; z-index:1; }
+  .ltv-loading span { font-family:'IBM Plex Mono',monospace; font-size:8px; color:var(--muted); letter-spacing:1px; }
+
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 900px) {
     html, body { height: auto; overflow: auto; -webkit-overflow-scrolling: touch; }
@@ -311,6 +336,12 @@
 
     .donut-wrap { gap: 16px; }
     .donut-wrap svg { width: 90px; height: 90px; }
+
+    .ltv { padding: 14px 16px; }
+    .ltv-primary { border-radius: 4px; }
+    .ltv-ch-name { font-size: 9px; }
+    .ltv-mute-btn { font-size: 8px; padding: 3px 9px; }
+    .ltv-thumb-label { font-size: 7px; }
 
     .alert { padding: 10px 12px; }
     .alert-t { font-size: 8px; }
@@ -670,6 +701,33 @@
 
   <!-- RIGHT PANEL -->
   <div class="panel panel-r">
+
+    <!-- LIVE TV -->
+    <div class="ltv">
+      <div class="ltv-label">
+        <span style="display:flex;align-items:center;gap:5px"><span class="ltv-live-dot" id="ltv-dot"></span>LIVE TV</span>
+      </div>
+      <div class="ltv-primary" id="ltv-primary" onclick="toggleLtvMute()">
+        <div class="ltv-loading" id="ltv-loading"><span>Connecting...</span></div>
+        <div id="ltv-player-primary"></div>
+        <div class="ltv-overlay">
+          <span class="ltv-ch-name" id="ltv-primary-name">Al Jazeera</span>
+          <button class="ltv-mute-btn" id="ltv-mute-btn" onclick="event.stopPropagation();toggleLtvMute()">Unmute</button>
+        </div>
+      </div>
+      <div class="ltv-thumbs">
+        <div class="ltv-thumb" id="ltv-thumb-0" onclick="swapLtvChannel(0)">
+          <div id="ltv-player-thumb0"></div>
+          <div class="ltv-thumb-label" id="ltv-thumb-label-0">Bloomberg</div>
+        </div>
+        <div class="ltv-thumb" id="ltv-thumb-1" onclick="swapLtvChannel(1)">
+          <div id="ltv-player-thumb1"></div>
+          <div class="ltv-thumb-label" id="ltv-thumb-label-1">Sky News</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE WIRE (Headlines) -->
     <div class="sec" style="flex-shrink:0">
       <div class="sec-label" style="margin-bottom:8px">
         <span style="display:flex;align-items:center;gap:6px;flex:1">
@@ -677,15 +735,6 @@
           LIVE WIRE
         </span>
         <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
-      </div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">AL JAZEERA</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">BLOOMBERG</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">SKY NEWS</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">BBC</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">REUTERS</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">NYT</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;padding:2px 5px;border-radius:2px;background:rgba(255,255,255,.05);color:var(--muted);letter-spacing:.5px">GUARDIAN</span>
       </div>
       <div id="rss-feed" style="max-height:400px;overflow-y:auto">
         <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
@@ -1453,10 +1502,12 @@ function parseYahooChart(data) {
 
 // Primary: all 3 quotes in one serverless call (fastest)
 async function fetchAllQuotesServerless() {
-  try {
-    const res = await fetchTimeout('/api/prices', 5000);
-    if (res.ok) return await res.json();
-  } catch(e) {}
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchTimeout('/api/prices', 10000);
+      if (res.ok) return await res.json();
+    } catch(e) {}
+  }
   return null;
 }
 
@@ -1549,9 +1600,10 @@ async function loadLivePrices() {
   }
 
   // Fallback: individual CORS proxy calls for any missing quotes
-  if (!anySuccess) {
+  const missing = YF_TICKERS.filter(t => !freshQuotes[t.symbol]);
+  if (missing.length > 0) {
     await Promise.allSettled(
-      YF_TICKERS.map(async (ticker) => {
+      missing.map(async (ticker) => {
         const quote = await fetchYahooQuote(ticker.symbol);
         if (quote) {
           updatePriceCard(ticker, quote);
@@ -1571,6 +1623,9 @@ async function loadLivePrices() {
       ? 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})
       : 'Failed to load — retrying...';
   }
+
+  // Retry quickly on failure instead of waiting 60s
+  if (!anySuccess) setTimeout(loadLivePrices, 10000);
 }
 
 // Show cached prices instantly, then fetch fresh
@@ -1602,6 +1657,94 @@ setInterval(updateUTC, 60000);
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// ── LIVE TV ──
+const LTV_CHANNELS = [
+  { handle: '@AlJazeeraEnglish', name: 'Al Jazeera',  fallback: 'gCNeDWCI0vo' },
+  { handle: '@Bloomberg',        name: 'Bloomberg',    fallback: 'iEpJwprxDdk' },
+  { handle: '@SkyNews',          name: 'Sky News',     fallback: 'YDvsBbKfLPA' },
+];
+
+let ltvOrder = [0, 1, 2];
+let ltvVideoIds = LTV_CHANNELS.map(c => c.fallback);
+let ltvMuted = true;
+let ltvPrimaryPlayer = null;
+let ltvThumbPlayers = [null, null];
+
+window.onYouTubeIframeAPIReady = function() {
+  const loadingEl = document.getElementById('ltv-loading');
+
+  ltvPrimaryPlayer = new YT.Player('ltv-player-primary', {
+    videoId: ltvVideoIds[ltvOrder[0]],
+    host: 'https://www.youtube-nocookie.com',
+    playerVars: { autoplay:1, mute:1, controls:0, rel:0, modestbranding:1, playsinline:1, enablejsapi:1 },
+    events: {
+      onReady: function() { if (loadingEl) loadingEl.style.display = 'none'; },
+      onError: function() { if (loadingEl) loadingEl.querySelector('span').textContent = 'Stream unavailable'; }
+    }
+  });
+
+  for (let i = 0; i < 2; i++) {
+    ltvThumbPlayers[i] = new YT.Player('ltv-player-thumb' + i, {
+      videoId: ltvVideoIds[ltvOrder[i + 1]],
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: { autoplay:1, mute:1, controls:0, rel:0, modestbranding:1, playsinline:1, enablejsapi:1 },
+    });
+  }
+};
+
+function swapLtvChannel(thumbIndex) {
+  const oldPrimary = ltvOrder[0];
+  ltvOrder[0] = ltvOrder[thumbIndex + 1];
+  ltvOrder[thumbIndex + 1] = oldPrimary;
+
+  if (ltvPrimaryPlayer && ltvPrimaryPlayer.loadVideoById) {
+    ltvPrimaryPlayer.loadVideoById(ltvVideoIds[ltvOrder[0]]);
+    if (!ltvMuted) ltvPrimaryPlayer.unMute(); else ltvPrimaryPlayer.mute();
+  }
+  if (ltvThumbPlayers[thumbIndex] && ltvThumbPlayers[thumbIndex].loadVideoById) {
+    ltvThumbPlayers[thumbIndex].loadVideoById(ltvVideoIds[ltvOrder[thumbIndex + 1]]);
+    ltvThumbPlayers[thumbIndex].mute();
+  }
+
+  document.getElementById('ltv-primary-name').textContent = LTV_CHANNELS[ltvOrder[0]].name;
+  for (let i = 0; i < 2; i++) {
+    document.getElementById('ltv-thumb-label-' + i).textContent = LTV_CHANNELS[ltvOrder[i + 1]].name;
+  }
+}
+
+function toggleLtvMute() {
+  ltvMuted = !ltvMuted;
+  const btn = document.getElementById('ltv-mute-btn');
+  if (ltvPrimaryPlayer) {
+    if (ltvMuted) { ltvPrimaryPlayer.mute(); btn.textContent = 'Unmute'; btn.classList.remove('unmuted'); }
+    else { ltvPrimaryPlayer.unMute(); btn.textContent = 'Mute'; btn.classList.add('unmuted'); }
+  }
+}
+
+// Poll for live video IDs every 5 min
+async function pollLtvStreams() {
+  try {
+    const res = await fetchTimeout('/api/youtube-live', 8000);
+    if (!res.ok) return;
+    const data = await res.json();
+    LTV_CHANNELS.forEach((ch, i) => {
+      const info = data[ch.handle];
+      if (info && info.videoId && info.videoId !== ltvVideoIds[i]) {
+        ltvVideoIds[i] = info.videoId;
+        const slot = ltvOrder.indexOf(i);
+        if (slot === 0 && ltvPrimaryPlayer && ltvPrimaryPlayer.loadVideoById) {
+          ltvPrimaryPlayer.loadVideoById(info.videoId);
+        } else if (slot > 0 && ltvThumbPlayers[slot - 1] && ltvThumbPlayers[slot - 1].loadVideoById) {
+          ltvThumbPlayers[slot - 1].loadVideoById(info.videoId);
+        }
+      }
+    });
+  } catch(e) {}
+}
+setTimeout(pollLtvStreams, 3000);
+setInterval(pollLtvStreams, 5 * 60 * 1000);
+
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>

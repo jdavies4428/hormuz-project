@@ -3,6 +3,19 @@
 
 const SYMBOLS = ['BZ=F', 'CL=F', 'TTF=F'];
 
+async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export default async function handler(req, res) {
   // Allow only GET
   if (req.method !== 'GET') {
@@ -19,16 +32,12 @@ export default async function handler(req, res) {
     SYMBOLS.map(async (symbol) => {
       try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
-        const response = await fetch(url, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        });
+        const response = await fetchWithTimeout(url, 8000);
 
         if (!response.ok) {
           // Try query2 as fallback
           const url2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
-          const response2 = await fetch(url2, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-          });
+          const response2 = await fetchWithTimeout(url2, 8000);
           if (!response2.ok) {
             results[symbol] = null;
             return;
