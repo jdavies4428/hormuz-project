@@ -2,8 +2,8 @@
 // Returns parsed JSON items, no CORS proxy needed
 
 const FEEDS = [
-  'https://news.google.com/rss/search?q=iran+hormuz+oil+strait+middle+east+when:7d&hl=en-US&gl=US&ceid=US:en',
-  'https://news.google.com/rss/search?q=oil+price+crude+OPEC+energy+when:3d&hl=en-US&gl=US&ceid=US:en',
+  'https://news.google.com/rss/search?q=iran+hormuz+oil+strait+middle+east+when:1d&hl=en-US&gl=US&ceid=US:en',
+  'https://news.google.com/rss/search?q=oil+price+crude+OPEC+energy+when:1d&hl=en-US&gl=US&ceid=US:en',
 ];
 
 export default async function handler(req, res) {
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
 
   try {
     const results = await Promise.allSettled(
