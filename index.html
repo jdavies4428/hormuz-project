@@ -20,6 +20,12 @@
 <meta name="twitter:title" content="Iran War: Strait of Hormuz Impact">
 <meta name="twitter:description" content="20M b/d at risk — 20% of global oil. Live crude prices, bypass capacity, strategic reserves, refinery exposure, and closure scenario modeling.">
 <meta name="twitter:image" content="https://iran-hormuz-oil.vercel.app/thumbnail.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e63946">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hormuz Impact">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1435,6 +1441,11 @@ function updateUTC() {
 }
 updateUTC();
 setInterval(updateUTC, 60000);
+
+// ── SERVICE WORKER (PWA) ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
