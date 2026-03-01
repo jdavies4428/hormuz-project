@@ -1240,33 +1240,59 @@ const YF_TICKERS = [
   { symbol: 'TTF=F',name: 'TTF',   elPrice: 'lp-ttf-price',   elChange: 'lp-ttf-change',   elCard: 'lp-ttf' },
 ];
 
-// CORS proxies — try in order, fall back if one fails
-const CORS_PROXIES = [
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-];
+// ── Show cached prices instantly, then refresh live ──
+function loadCachedPrices() {
+  try {
+    const cached = JSON.parse(localStorage.getItem('yf_prices') || '{}');
+    if (cached.ts && (Date.now() - cached.ts < 600000)) { // < 10 min old
+      YF_TICKERS.forEach(ticker => {
+        const q = cached[ticker.symbol];
+        if (q) updatePriceCard(ticker, q);
+        if (ticker.symbol === 'BZ=F' && q) updateScenarios(q.price);
+      });
+      const dot = document.getElementById('lp-status-dot');
+      const tsEl = document.getElementById('lp-timestamp');
+      if (dot) dot.className = 'lp-dot stale';
+      if (tsEl) tsEl.textContent = 'Cached · refreshing...';
+    }
+  } catch(e) {}
+}
 
+function cachePrices(quotes) {
+  try {
+    const obj = { ts: Date.now() };
+    Object.entries(quotes).forEach(([sym, q]) => { obj[sym] = q; });
+    localStorage.setItem('yf_prices', JSON.stringify(obj));
+  } catch(e) {}
+}
+
+// CORS proxies — race all in parallel, fastest wins
 function fetchTimeout(url, ms) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
+async function tryProxy(proxyUrl) {
+  const res = await fetchTimeout(proxyUrl, 7000);
+  if (!res.ok) throw new Error('not ok');
+  const text = await res.text();
+  return JSON.parse(text);
+}
+
 async function fetchWithProxy(url) {
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const res = await fetchTimeout(proxy(url), 10000);
-      if (!res.ok) continue;
-      const text = await res.text();
-      try { return JSON.parse(text); } catch(e) { continue; }
-    } catch (e) {
-      continue;
-    }
-  }
-  // Last resort: try allorigins /get endpoint which wraps in JSON
+  const proxyUrls = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  ];
+  // Race all proxies — first valid JSON wins
   try {
-    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, 10000);
+    return await Promise.any(proxyUrls.map(p => tryProxy(p)));
+  } catch(e) {}
+  // Last resort: allorigins /get wrapper
+  try {
+    const res = await fetchTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, 8000);
     if (res.ok) {
       const wrapper = await res.json();
       if (wrapper && wrapper.contents) return JSON.parse(wrapper.contents);
@@ -1275,56 +1301,31 @@ async function fetchWithProxy(url) {
   return null;
 }
 
+function parseYahooChart(data) {
+  if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
+  const result = data.chart.result[0];
+  const meta = result.meta;
+  const closes = result.indicators.quote[0].close;
+  const validCloses = closes.filter(p => p !== null && p !== undefined);
+  if (validCloses.length < 2) return null;
+
+  const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
+  const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
+  const change = price - prevClose;
+  const changePct = (change / prevClose) * 100;
+  return {
+    price: Math.round(price * 100) / 100,
+    change: Math.round(change * 100) / 100,
+    changePct: Math.round(changePct * 100) / 100,
+    currency: meta.currency || 'USD',
+  };
+}
+
 async function fetchYahooQuote(symbol) {
-  // Try chart endpoint first (richer data)
-  const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
-  const data = await fetchWithProxy(chartUrl);
-
-  if (data && data.chart && data.chart.result && data.chart.result[0]) {
-    const result = data.chart.result[0];
-    const meta = result.meta;
-    const closes = result.indicators.quote[0].close;
-    const validCloses = closes.filter(p => p !== null && p !== undefined);
-
-    if (validCloses.length >= 2) {
-      const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
-      const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
-      const change = price - prevClose;
-      const changePct = (change / prevClose) * 100;
-      return {
-        price: Math.round(price * 100) / 100,
-        change: Math.round(change * 100) / 100,
-        changePct: Math.round(changePct * 100) / 100,
-        currency: meta.currency || 'USD',
-      };
-    }
-  }
-
-  // Fallback: try query2 endpoint
-  const q2Url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
-  const data2 = await fetchWithProxy(q2Url);
-
-  if (data2 && data2.chart && data2.chart.result && data2.chart.result[0]) {
-    const result = data2.chart.result[0];
-    const meta = result.meta;
-    const closes = result.indicators.quote[0].close;
-    const validCloses = closes.filter(p => p !== null && p !== undefined);
-
-    if (validCloses.length >= 2) {
-      const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
-      const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
-      const change = price - prevClose;
-      const changePct = (change / prevClose) * 100;
-      return {
-        price: Math.round(price * 100) / 100,
-        change: Math.round(change * 100) / 100,
-        changePct: Math.round(changePct * 100) / 100,
-        currency: meta.currency || 'USD',
-      };
-    }
-  }
-
-  return null;
+  // Use range=2d for smaller payload, faster response
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`;
+  const data = await fetchWithProxy(url);
+  return parseYahooChart(data);
 }
 
 function formatPrice(price, currency) {
@@ -1392,25 +1393,24 @@ async function loadLivePrices() {
   const dot = document.getElementById('lp-status-dot');
   const tsEl = document.getElementById('lp-timestamp');
   let anySuccess = false;
+  const freshQuotes = {};
 
   const results = await Promise.allSettled(
     YF_TICKERS.map(async (ticker) => {
       const quote = await fetchYahooQuote(ticker.symbol);
       if (quote) {
         updatePriceCard(ticker, quote);
+        freshQuotes[ticker.symbol] = quote;
         anySuccess = true;
-        // Update scenarios based on Brent price
-        if (ticker.symbol === 'BZ=F') {
-          updateScenarios(quote.price);
-        }
+        if (ticker.symbol === 'BZ=F') updateScenarios(quote.price);
       }
       return quote;
     })
   );
 
-  if (dot) {
-    dot.className = anySuccess ? 'lp-dot' : 'lp-dot error';
-  }
+  if (anySuccess) cachePrices(freshQuotes);
+
+  if (dot) dot.className = anySuccess ? 'lp-dot' : 'lp-dot error';
   if (tsEl) {
     tsEl.textContent = anySuccess
       ? 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})
@@ -1418,7 +1418,8 @@ async function loadLivePrices() {
   }
 }
 
-// Initial load + refresh every 60 seconds
+// Show cached prices instantly, then fetch fresh
+loadCachedPrices();
 loadLivePrices();
 setInterval(loadLivePrices, 60 * 1000);
 
