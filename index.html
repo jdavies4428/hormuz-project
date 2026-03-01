@@ -164,7 +164,11 @@
     background:rgba(8,10,18,.9); border:1px solid var(--border);
     border-radius:4px; padding:9px 13px; backdrop-filter:blur(12px); min-width:175px;
   }
-  .ml-title { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; }
+  .ml-title { font-family:'IBM Plex Mono',monospace; font-size:7.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .ml-title::after { content:'▾'; font-size:8px; opacity:.5; }
+  .map-legend.collapsed .ml-title::after { content:'▸'; }
+  .map-legend.collapsed .ml-title { margin-bottom:0; }
+  .map-legend.collapsed .ml-body { display:none; }
   .ml-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:9.5px; }
   .ml-line { width:22px; height:2px; flex-shrink:0; }
   .ml-dotl { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
@@ -708,30 +712,32 @@
   <!-- MAP -->
   <div class="map-wrap">
     <div id="map"></div>
-    <div class="map-legend">
-      <div class="ml-title">Map Legend</div>
-      <div class="ml-row">
-        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#f4a261" stroke-width="2" stroke-dasharray="6,3"/></svg>
-        <span style="color:#f4a261">Tanker route</span>
+    <div class="map-legend" id="map-legend">
+      <div class="ml-title" onclick="document.getElementById('map-legend').classList.toggle('collapsed')">Map Legend</div>
+      <div class="ml-body">
+        <div class="ml-row">
+          <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#f4a261" stroke-width="2" stroke-dasharray="6,3"/></svg>
+          <span style="color:#f4a261">Tanker route</span>
+        </div>
+        <div class="ml-row">
+          <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#52b788" stroke-width="2" stroke-dasharray="5,3"/></svg>
+          <span style="color:#52b788">Saudi E-W pipeline</span>
+        </div>
+        <div class="ml-row">
+          <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#2a9d8f" stroke-width="2" stroke-dasharray="4,3"/></svg>
+          <span style="color:#2a9d8f">UAE Fujairah bypass</span>
+        </div>
+        <div class="ml-row">
+          <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#5a6278" stroke-width="2" stroke-dasharray="3,4"/></svg>
+          <span style="color:#5a6278">Goreh-Jask (inactive)</span>
+        </div>
+        <div style="height:5px"></div>
+        <div class="ml-row"><div class="ml-dotl" style="background:#52b788"></div><span>Pipeline terminal</span></div>
+        <div style="height:5px"></div>
+        <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🇺🇸</span><span style="color:#6a8caf">US base</span> <span style="font-size:10px;width:10px;text-align:center">🇮🇷</span><span style="color:#6a8caf">Iran base</span></div>
+        <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">☢</span><span style="color:#c77dff">Nuclear facility</span></div>
+        <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🔥</span><span style="color:#ff4500">Fire hotspot</span></div>
       </div>
-      <div class="ml-row">
-        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#52b788" stroke-width="2" stroke-dasharray="5,3"/></svg>
-        <span style="color:#52b788">Saudi E-W pipeline</span>
-      </div>
-      <div class="ml-row">
-        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#2a9d8f" stroke-width="2" stroke-dasharray="4,3"/></svg>
-        <span style="color:#2a9d8f">UAE Fujairah bypass</span>
-      </div>
-      <div class="ml-row">
-        <svg width="22" height="4"><line x1="0" y1="2" x2="22" y2="2" stroke="#5a6278" stroke-width="2" stroke-dasharray="3,4"/></svg>
-        <span style="color:#5a6278">Goreh-Jask (inactive)</span>
-      </div>
-      <div style="height:5px"></div>
-      <div class="ml-row"><div class="ml-dotl" style="background:#52b788"></div><span>Pipeline terminal</span></div>
-      <div style="height:5px"></div>
-      <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🇺🇸</span><span style="color:#6a8caf">US base</span> <span style="font-size:10px;width:10px;text-align:center">🇮🇷</span><span style="color:#6a8caf">Iran base</span></div>
-      <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">☢</span><span style="color:#c77dff">Nuclear facility</span></div>
-      <div class="ml-row"><span style="font-size:10px;width:10px;text-align:center">🔥</span><span style="color:#ff4500">Fire hotspot</span></div>
     </div>
     <!-- Layer Toggle Panel -->
     <div class="layer-toggle" id="layer-toggle">
@@ -1262,7 +1268,10 @@ setInterval(fetchFires, 15 * 60000);
 
 
 // ── LAYER TOGGLE WIRING ──
-if (window.innerWidth <= 768) document.getElementById('layer-toggle').classList.add('collapsed');
+if (window.innerWidth <= 768) {
+  document.getElementById('layer-toggle').classList.add('collapsed');
+  document.getElementById('map-legend').classList.add('collapsed');
+}
 document.getElementById('tog-bases').addEventListener('change', function() {
   this.checked ? map.addLayer(basesLayer) : map.removeLayer(basesLayer);
 });
@@ -1807,8 +1816,20 @@ window.onYouTubeIframeAPIReady = function() {
     events: {
       onReady: function() {
         if (loadingEl) loadingEl.style.display = 'none';
-        // Browsers block unmuted autoplay — start muted, unmute on first click
-        if (!ltvMuted) { ltvPrimaryPlayer.unMute(); }
+        // Try to unmute — works on desktop, silently fails on mobile
+        if (!ltvMuted) {
+          try { ltvPrimaryPlayer.unMute(); } catch(e) {}
+          // Mobile fallback: unmute on first user interaction
+          function unmuteOnTouch() {
+            if (ltvPrimaryPlayer && !ltvMuted) {
+              try { ltvPrimaryPlayer.unMute(); } catch(e) {}
+            }
+            document.removeEventListener('touchstart', unmuteOnTouch);
+            document.removeEventListener('click', unmuteOnTouch);
+          }
+          document.addEventListener('touchstart', unmuteOnTouch, {once:true});
+          document.addEventListener('click', unmuteOnTouch, {once:true});
+        }
       },
       onError: function() { if (loadingEl) loadingEl.querySelector('span').textContent = 'Stream unavailable'; }
     }
