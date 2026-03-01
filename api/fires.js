@@ -1,7 +1,9 @@
 // Vercel Serverless Function — proxies NASA FIRMS fire hotspot data
+// Uses area/bounding-box endpoint (country endpoint is broken)
 
 const FIRMS_KEY = process.env.FIRMS_MAP_KEY;
-const COUNTRIES = ['IRN', 'IRQ', 'SAU', 'ARE', 'QAT', 'OMN', 'KWT', 'BHR'];
+// Bounding box: west,south,east,north covering Iran/Iraq/Gulf region
+const BBOX = '35,12,65,42';
 
 async function fetchWithTimeout(url, ms) {
   const controller = new AbortController();
@@ -31,7 +33,6 @@ function parseCsv(csvText) {
     const cols = lines[i].split(',');
     if (cols.length < headers.length) continue;
     const confidence = (cols[confIdx] || '').trim().toLowerCase();
-    // Skip low confidence detections
     if (confidence === 'low') continue;
     const lat = parseFloat(cols[latIdx]);
     const lon = parseFloat(cols[lonIdx]);
@@ -55,22 +56,16 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
 
-  const allFires = [];
-
-  await Promise.all(
-    COUNTRIES.map(async (country) => {
-      try {
-        const url = `https://firms.modaps.eosdis.nasa.gov/api/country/csv/${FIRMS_KEY}/VIIRS_SNPP_NRT/${country}/1`;
-        const response = await fetchWithTimeout(url, 10000);
-        if (!response.ok) return;
-        const text = await response.text();
-        const fires = parseCsv(text);
-        allFires.push(...fires);
-      } catch (e) {
-        // Skip failed country
-      }
-    })
-  );
-
-  return res.status(200).json(allFires);
+  try {
+    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${FIRMS_KEY}/VIIRS_SNPP_NRT/${BBOX}/1`;
+    const response = await fetchWithTimeout(url, 12000);
+    if (!response.ok) {
+      return res.status(502).json({ error: 'FIRMS API error', status: response.status });
+    }
+    const text = await response.text();
+    const fires = parseCsv(text);
+    return res.status(200).json(fires);
+  } catch (e) {
+    return res.status(502).json({ error: 'FIRMS fetch failed' });
+  }
 }
