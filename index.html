@@ -1008,7 +1008,7 @@ function mkPulse(latlng, color, sz, delay, tipHtml) {
     </div>`
   });
   const m = L.marker(latlng, {icon}).addTo(map);
-  if (tipHtml) m.bindPopup(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:260, closeButton:false});
+  if (tipHtml) m.bindTooltip(`<div class="map-tip">${tipHtml}</div>`, {maxWidth:260, opacity:1, sticky:false});
   return m;
 }
 
@@ -1033,7 +1033,7 @@ function mkLabel(latlng, html) {
 
 function line(coords, color, dash, w=2, op=0.7, popupHtml) {
   const pl = L.polyline(coords, {color, weight:w, opacity:op, dashArray:dash}).addTo(map);
-  if (popupHtml) pl.bindPopup(`<div class="map-tip">${popupHtml}</div>`, {maxWidth:280, closeButton:false});
+  if (popupHtml) pl.bindTooltip(`<div class="map-tip">${popupHtml}</div>`, {maxWidth:280, opacity:1, sticky:true});
   return pl;
 }
 
@@ -1244,7 +1244,7 @@ async function fetchFires() {
       L.circleMarker([f.lat, f.lon], {
         radius: r, fillColor:'#ff4500', fillOpacity:op,
         color:'#ff4500', weight:0.5, opacity:op
-      }).bindPopup(`<div class="map-tip"><strong>Fire Hotspot</strong><span style="color:#ff4500">Brightness: ${f.brightness} K<br>Confidence: ${f.confidence}<br>${f.datetime}</span></div>`, {maxWidth:220, closeButton:false})
+      }).bindTooltip(`<div class="map-tip"><strong>Fire Hotspot</strong><span style="color:#ff4500">Brightness: ${f.brightness} K<br>Confidence: ${f.confidence}<br>${f.datetime}</span></div>`, {maxWidth:220, opacity:1, sticky:false})
       .addTo(firesLayer);
     });
   } catch(e) { /* silent \u2014 fires layer optional */ }
