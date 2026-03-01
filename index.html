@@ -666,7 +666,7 @@
         </span>
         <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
       </div>
-      <div id="rss-feed" style="max-height:260px;overflow-y:auto">
+      <div id="rss-feed" style="max-height:400px;overflow-y:auto">
         <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
           ⟳ Fetching live headlines...
         </div>
@@ -1136,8 +1136,8 @@ function alertClass(dateStr) {
 }
 
 async function fetchFeed(feed) {
-  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=25`;
-  const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  const url = `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=20`;
+  const r = await fetchTimeout(url, 10000);
   const json = await r.json();
   if (!json.items) return [];
   return json.items.map(item => ({
@@ -1175,10 +1175,24 @@ function renderFeed(items) {
 
 async function loadRSS() {
   try {
-    const results = await Promise.allSettled(FEEDS.map(fetchFeed));
-    const all = results
-      .filter(r => r.status === 'fulfilled')
-      .flatMap(r => r.value);
+    // Stagger feeds to avoid rss2json rate limits (batch of 3)
+    const batches = [];
+    for (let i = 0; i < FEEDS.length; i += 3) {
+      batches.push(FEEDS.slice(i, i + 3));
+    }
+
+    let all = [];
+    for (const batch of batches) {
+      const results = await Promise.allSettled(batch.map(fetchFeed));
+      const items = results
+        .filter(r => r.status === 'fulfilled')
+        .flatMap(r => r.value);
+      all.push(...items);
+      // Render progressively — show what we have so far
+      if (all.length > 0 && batch === batches[0]) {
+        renderPartial(all);
+      }
+    }
 
     // Separate relevant and general
     const relevant = all.filter(item => item.relevant);
@@ -1200,8 +1214,8 @@ async function loadRSS() {
 
     // Show relevant first, fill remaining slots with general headlines
     const combined = [...uniqueRelevant.slice(0, 15)];
-    if (combined.length < 8) {
-      combined.push(...uniqueGeneral.slice(0, 8 - combined.length));
+    if (combined.length < 10) {
+      combined.push(...uniqueGeneral.slice(0, 10 - combined.length));
     }
 
     renderFeed(combined.slice(0, 15));
@@ -1211,6 +1225,11 @@ async function loadRSS() {
       Could not load live feed. Check network / CORS.<br><span style="font-size:8px">Retrying in 3 min...</span>
     </div>`;
   }
+}
+
+function renderPartial(items) {
+  const sorted = items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  renderFeed(sorted.slice(0, 8));
 }
 
 // Initial load + refresh every 3 minutes
