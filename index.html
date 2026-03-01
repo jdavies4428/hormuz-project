@@ -447,32 +447,32 @@
     <div class="sec">
       <div class="sec-label">Hormuz Closure — Price Scenarios</div>
       <div class="ps ps-mid" id="ps-partial">
-        <div class="ps-label">Partial Closure (1-2 weeks)</div>
+        <div class="ps-label">Partial Disruption (1-2 weeks)</div>
         <div class="ps-prices" id="ps-partial-prices">
-          <span>Brent <strong style="color:var(--gold)">$120–140</strong></span>
-          <span>WTI <strong style="color:var(--gold)">$115–135</strong></span>
+          <span>Brent <strong style="color:var(--gold)">$95–110</strong></span>
+          <span>WTI <strong style="color:var(--gold)">$90–105</strong></span>
         </div>
-        <div class="ps-note" id="ps-partial-note">+55-80% · SPR releases, bypass pipelines activated</div>
+        <div class="ps-note" id="ps-partial-note">+25-45% · Harassment, not full blockade · Naval escorts, SPR release · Abqaiq 2019 analog ×3</div>
       </div>
       <div class="ps ps-high" id="ps-full">
-        <div class="ps-label">Full Closure (1-3 months)</div>
+        <div class="ps-label">Full Blockade (1-3 months)</div>
         <div class="ps-prices" id="ps-full-prices">
-          <span>Brent <strong style="color:var(--accent)">$150–200</strong></span>
-          <span>WTI <strong style="color:var(--accent)">$145–190</strong></span>
+          <span>Brent <strong style="color:var(--accent)">$120–155</strong></span>
+          <span>WTI <strong style="color:var(--accent)">$115–150</strong></span>
         </div>
-        <div class="ps-note" id="ps-full-note">+90-155% · Demand destruction kicks in above ~$150</div>
+        <div class="ps-note" id="ps-full-note">+55-100% · Mining/interdiction of lanes · Kuwait 1990 analog · Demand destruction onset ~$130-150</div>
       </div>
       <div class="ps ps-ext" id="ps-extended">
-        <div class="ps-label">Extended Closure (3+ months)</div>
+        <div class="ps-label">Extended Regional War (3+ months)</div>
         <div class="ps-prices" id="ps-extended-prices">
-          <span>Brent <strong style="color:#ff4444">$180–250+</strong></span>
-          <span>WTI <strong style="color:#ff4444">$175–240+</strong></span>
+          <span>Brent <strong style="color:#ff4444">$150–200+</strong></span>
+          <span>WTI <strong style="color:#ff4444">$145–195+</strong></span>
         </div>
-        <div class="ps-note" id="ps-extended-note">Global recession · Rationing likely · 1973-level crisis</div>
+        <div class="ps-note" id="ps-extended-note">+90-170% · Infrastructure destroyed · 1973 embargo analog · Rationing / recession</div>
       </div>
       <div class="contango-box">
         <div class="cb-label">Futures Curve: Severe Backwardation</div>
-        <div class="cb-text">Near-term contracts at massive premium to deferred. Market pricing acute physical shortage — not a transient spike. Contango structure inverted: front-month $30-50 above 12-month.</div>
+        <div class="cb-text">Near-term contracts at premium to deferred — market pricing physical shortage risk. Degree depends on closure duration: short disruption = $5-15 backwardation; full blockade = $20-40+ front-month premium over 12-month.</div>
       </div>
       <div class="note" style="margin-top:5px"><span class="src">(Goldman Sachs / JP Morgan crisis models · EIA disruption scenarios)</span></div>
     </div>
@@ -1313,29 +1313,29 @@ function updateScenarios(brentPrice) {
   const spread = 4;
   const w = b - spread;
 
-  // Partial closure: +55-80%
-  const p1b = Math.round(b * 1.55), p2b = Math.round(b * 1.80);
-  const p1w = Math.round(w * 1.55), p2w = Math.round(w * 1.80);
+  // Partial disruption: +25-45% (harassment, not full blockade — Abqaiq 2019 was +15% for 5.7M b/d)
+  const p1b = Math.round(b * 1.25), p2b = Math.round(b * 1.45);
+  const p1w = Math.round(w * 1.25), p2w = Math.round(w * 1.45);
   const partialEl = document.getElementById('ps-partial-prices');
   const partialNote = document.getElementById('ps-partial-note');
   if (partialEl) partialEl.innerHTML = `<span>Brent <strong style="color:var(--gold)">$${p1b}–${p2b}</strong></span><span>WTI <strong style="color:var(--gold)">$${p1w}–${p2w}</strong></span>`;
-  if (partialNote) partialNote.textContent = `+55-80% from $${b.toFixed(0)} · SPR releases, bypass pipelines activated`;
+  if (partialNote) partialNote.textContent = `+25-45% from $${b.toFixed(0)} · Harassment, not full blockade · Naval escorts, SPR release`;
 
-  // Full closure: +90-155%
-  const f1b = Math.round(b * 1.90), f2b = Math.round(b * 2.55);
-  const f1w = Math.round(w * 1.90), f2w = Math.round(w * 2.55);
+  // Full blockade: +55-100% (Kuwait 1990 was +130% for 4.3M b/d over 2mo — but demand destruction caps upside)
+  const f1b = Math.round(b * 1.55), f2b = Math.round(b * 2.00);
+  const f1w = Math.round(w * 1.55), f2w = Math.round(w * 2.00);
   const fullEl = document.getElementById('ps-full-prices');
   const fullNote = document.getElementById('ps-full-note');
   if (fullEl) fullEl.innerHTML = `<span>Brent <strong style="color:var(--accent)">$${f1b}–${f2b}</strong></span><span>WTI <strong style="color:var(--accent)">$${f1w}–${f2w}</strong></span>`;
-  if (fullNote) fullNote.textContent = `+90-155% from $${b.toFixed(0)} · Demand destruction kicks in above ~$150`;
+  if (fullNote) fullNote.textContent = `+55-100% from $${b.toFixed(0)} · Mining/interdiction · Kuwait 1990 analog · Demand destruction onset ~$130-150`;
 
-  // Extended closure: +130-220%
-  const e1b = Math.round(b * 2.30), e2b = Math.round(b * 3.20);
-  const e1w = Math.round(w * 2.30), e2w = Math.round(w * 3.20);
+  // Extended regional war: +90-170% (1973 embargo territory — structural repricing)
+  const e1b = Math.round(b * 1.90), e2b = Math.round(b * 2.70);
+  const e1w = Math.round(w * 1.90), e2w = Math.round(w * 2.70);
   const extEl = document.getElementById('ps-extended-prices');
   const extNote = document.getElementById('ps-extended-note');
   if (extEl) extEl.innerHTML = `<span>Brent <strong style="color:#ff4444">$${e1b}–${e2b}+</strong></span><span>WTI <strong style="color:#ff4444">$${e1w}–${e2w}+</strong></span>`;
-  if (extNote) extNote.textContent = `+130-220% from $${b.toFixed(0)} · Global recession · Rationing likely`;
+  if (extNote) extNote.textContent = `+90-170% from $${b.toFixed(0)} · Infrastructure destroyed · 1973 analog · Rationing / recession`;
 }
 
 async function loadLivePrices() {
