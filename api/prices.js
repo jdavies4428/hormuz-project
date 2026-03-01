@@ -62,13 +62,13 @@ function parseChart(data) {
   if (!data?.chart?.result?.[0]) return null;
   const result = data.chart.result[0];
   const meta = result.meta;
-  const closes = result.indicators.quote[0].close.filter(
+  const closes = result.indicators?.quote?.[0]?.close?.filter(
     (p) => p !== null && p !== undefined
-  );
-  if (closes.length < 2) return null;
+  ) || [];
 
   const price = meta.regularMarketPrice || closes[closes.length - 1];
   const prevClose = meta.chartPreviousClose || closes[closes.length - 2];
+  if (!price || !prevClose) return null;
   const change = price - prevClose;
   const changePct = (change / prevClose) * 100;
 

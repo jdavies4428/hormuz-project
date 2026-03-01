@@ -1484,12 +1484,12 @@ function parseYahooChart(data) {
   if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
   const result = data.chart.result[0];
   const meta = result.meta;
-  const closes = result.indicators.quote[0].close;
+  const closes = result.indicators?.quote?.[0]?.close || [];
   const validCloses = closes.filter(p => p !== null && p !== undefined);
-  if (validCloses.length < 2) return null;
 
   const price = meta.regularMarketPrice || validCloses[validCloses.length - 1];
   const prevClose = meta.chartPreviousClose || validCloses[validCloses.length - 2];
+  if (!price || !prevClose) return null;
   const change = price - prevClose;
   const changePct = (change / prevClose) * 100;
   return {
