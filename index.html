@@ -46,7 +46,7 @@
     --green: #52b788;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: 'IBM Plex Sans', sans-serif; color: var(--text); }
+  html, body { height: 100%; overflow-x: hidden; overflow-y: auto; background: var(--bg); font-family: 'IBM Plex Sans', sans-serif; color: var(--text); }
 
   .header {
     height: 68px; background: #080a12;
@@ -78,13 +78,18 @@
   @-webkit-keyframes scroll { 0%{-webkit-transform:translateX(0)} 100%{-webkit-transform:translateX(-50%)} }
   @keyframes scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
-  .layout { display:flex; height:calc(100vh - 94px); }
+  .layout { display:flex; height:calc(100vh - 94px); flex-shrink:0; }
 
   .panel { width:280px; flex-shrink:0; display:flex; flex-direction:column; overflow-y:auto; background:var(--panel); }
   .panel::-webkit-scrollbar { width:2px; }
   .panel::-webkit-scrollbar-thumb { background:var(--border); }
   .panel-l { border-right:1px solid var(--border); }
-  .panel-r { border-left:1px solid var(--border); }
+
+  /* Bottom section — replaces right sidebar */
+  .bottom-section { background:var(--panel); border-top:1px solid var(--border); overflow-x:auto; overflow-y:hidden; }
+  .bottom-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
+  .bottom-grid > .sec { border-bottom:none; border-right:1px solid var(--border); }
+  .bottom-grid > .sec:last-child { border-right:none; }
 
   .sec { padding:13px 15px; border-bottom:1px solid var(--border); }
   .sec-label { font-family:'IBM Plex Mono',monospace; font-size:7.5px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
@@ -302,7 +307,11 @@
     .panel-l { order: 1; }
     .map-wrap { order: 2; height: 55vh; min-height: 320px; flex: none; position: relative; }
     #map { width: 100%; height: 55vh; min-height: 320px; }
-    .panel-r { order: 3; }
+
+    .bottom-section > div:first-child { flex-direction: column; }
+    .bottom-section > div:first-child > .ltv { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    .bottom-grid { grid-template-columns: 1fr; }
+    .bottom-grid > .sec { border-right: none; border-bottom: 1px solid var(--border); }
 
     .sec { padding: 14px 16px; }
     .sec-label { font-size: 8px; }
@@ -699,11 +708,17 @@
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
-  <div class="panel panel-r">
+  </div>
 
+</div>
+
+<!-- BOTTOM SECTION — was right sidebar -->
+<div class="bottom-section">
+
+  <!-- Row 1: Live TV + Live Wire side by side -->
+  <div style="display:flex; border-bottom:1px solid var(--border)">
     <!-- LIVE TV -->
-    <div class="ltv">
+    <div class="ltv" style="width:340px;flex-shrink:0;border-right:1px solid var(--border);border-bottom:none">
       <div class="ltv-label">
         <span style="display:flex;align-items:center;gap:5px"><span class="ltv-live-dot" id="ltv-dot"></span>LIVE TV</span>
       </div>
@@ -711,14 +726,14 @@
         <div class="ltv-loading" id="ltv-loading"><span>Connecting...</span></div>
         <div id="ltv-player-primary"></div>
         <div class="ltv-overlay">
-          <span class="ltv-ch-name" id="ltv-primary-name">Al Jazeera</span>
-          <button class="ltv-mute-btn" id="ltv-mute-btn" onclick="event.stopPropagation();toggleLtvMute()">Unmute</button>
+          <span class="ltv-ch-name" id="ltv-primary-name">Bloomberg</span>
+          <button class="ltv-mute-btn unmuted" id="ltv-mute-btn" onclick="event.stopPropagation();toggleLtvMute()">Mute</button>
         </div>
       </div>
       <div class="ltv-thumbs">
         <div class="ltv-thumb" id="ltv-thumb-0" onclick="swapLtvChannel(0)">
           <div id="ltv-player-thumb0"></div>
-          <div class="ltv-thumb-label" id="ltv-thumb-label-0">Bloomberg</div>
+          <div class="ltv-thumb-label" id="ltv-thumb-label-0">Al Jazeera</div>
         </div>
         <div class="ltv-thumb" id="ltv-thumb-1" onclick="swapLtvChannel(1)">
           <div id="ltv-player-thumb1"></div>
@@ -728,7 +743,7 @@
     </div>
 
     <!-- LIVE WIRE (Headlines) -->
-    <div class="sec" style="flex-shrink:0">
+    <div class="sec" style="flex:1;border-bottom:none;overflow-y:auto;max-height:280px">
       <div class="sec-label" style="margin-bottom:8px">
         <span style="display:flex;align-items:center;gap:6px;flex:1">
           <span id="rss-dot" style="width:6px;height:6px;border-radius:50%;background:#e63946;display:inline-block;animation:blink 1s infinite;flex-shrink:0"></span>
@@ -736,15 +751,19 @@
         </span>
         <span id="rss-updated" style="font-size:7px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap"></span>
       </div>
-      <div id="rss-feed" style="max-height:400px;overflow-y:auto">
+      <div id="rss-feed" style="overflow-y:auto">
         <div style="padding:16px 0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">
           ⟳ Fetching live headlines...
         </div>
       </div>
       <div id="rss-error" style="display:none;padding:8px 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted)"></div>
     </div>
+  </div>
 
-    <!-- NEW: HISTORICAL PRECEDENTS -->
+  <!-- Row 2: Analysis grid -->
+  <div class="bottom-grid">
+
+    <!-- HISTORICAL PRECEDENTS -->
     <div class="sec">
       <div class="sec-label">Historical Precedents</div>
       <div class="precedent">
@@ -785,7 +804,7 @@
       <div class="note" style="margin-top:6px">Hormuz closure dwarfs all precedents: 20M b/d vs Abqaiq's 5.7M or Kuwait's 4.3M. No modern equivalent exists.</div>
     </div>
 
-    <!-- NEW: INSURANCE & FREIGHT -->
+    <!-- INSURANCE & FREIGHT -->
     <div class="sec">
       <div class="sec-label">Insurance &amp; Freight Impact <span class="src" style="margin-left:auto">(Lloyd's)</span></div>
       <div class="sg">
@@ -801,7 +820,31 @@
       <div class="note" style="margin-top:6px">War-risk on $100M hull = $5-10M per transit. Tanker owners refusing Hormuz passage. BDTI index expected to spike 500%+. 1984 Tanker War premiums were 100x — this would be worse.</div>
     </div>
 
-    <!-- NEW: REFINERY DEPENDENCY -->
+    <!-- CONSUMER IMPACT -->
+    <div class="sec">
+      <div class="sec-label">Consumer Impact — Who Pays</div>
+      <div class="sg">
+        <div class="sc">
+          <div class="v" style="color:var(--accent);font-size:20px">$5-7</div>
+          <div class="l">US gasoline/gal<br><span style="font-size:6.5px;opacity:.7">vs $3.20 today</span></div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--gold);font-size:20px">2-3M</div>
+          <div class="l">b/d demand destroyed</div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--warn);font-size:20px">60-80%</div>
+          <div class="l">Recession probability</div>
+        </div>
+        <div class="sc">
+          <div class="v" style="color:var(--teal);font-size:20px">2-4%</div>
+          <div class="l">GDP hit (importers)</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:6px">Every $10/bbl increase ≈ 0.2% off global GDP. At $180 Brent (+$100), equivalent to ~2% GDP shock. Developing Asian economies and oil-import-dependent nations (India, Japan, Turkey) hit hardest.</div>
+    </div>
+
+    <!-- REFINERY DEPENDENCY -->
     <div class="sec">
       <div class="sec-label">Downstream — Key Refineries at Risk <span class="src" style="margin-left:auto">(Platts)</span></div>
       <div class="ref-row" style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--muted);border:none;padding-bottom:0"><span>Facility</span><span>Capacity</span></div>
@@ -828,31 +871,7 @@
       <div class="note" style="margin-top:6px">Asian refining complex (~35M b/d) faces feedstock crisis within 2-4 weeks of full closure. Product cracks (gasoline, diesel, jet fuel) spike globally.</div>
     </div>
 
-    <!-- NEW: CONSUMER IMPACT -->
-    <div class="sec">
-      <div class="sec-label">Consumer Impact — Who Pays</div>
-      <div class="sg">
-        <div class="sc">
-          <div class="v" style="color:var(--accent);font-size:20px">$5-7</div>
-          <div class="l">US gasoline/gal<br><span style="font-size:6.5px;opacity:.7">vs $3.20 today</span></div>
-        </div>
-        <div class="sc">
-          <div class="v" style="color:var(--gold);font-size:20px">2-3M</div>
-          <div class="l">b/d demand destroyed</div>
-        </div>
-        <div class="sc">
-          <div class="v" style="color:var(--warn);font-size:20px">60-80%</div>
-          <div class="l">Recession probability</div>
-        </div>
-        <div class="sc">
-          <div class="v" style="color:var(--teal);font-size:20px">2-4%</div>
-          <div class="l">GDP hit (importers)</div>
-        </div>
-      </div>
-      <div class="note" style="margin-top:6px">Every $10/bbl increase ≈ 0.2% off global GDP. At $180 Brent (+$100), equivalent to ~2% GDP shock. Developing Asian economies and oil-import-dependent nations (India, Japan, Turkey) hit hardest.</div>
-    </div>
-
-    <!-- NEW: TIMEFRAME TO REOPEN -->
+    <!-- TIMEFRAME TO REOPEN -->
     <div class="sec">
       <div class="sec-label">Timeframe to Reopen — Scenarios <span class="src" style="margin-left:auto">(ONI / USN)</span></div>
       <div class="ts-row">
@@ -887,7 +906,7 @@
     </div>
 
     <!-- ESCALATION TIMELINE -->
-    <div class="sec" style="flex:1;overflow-y:auto">
+    <div class="sec">
       <div class="sec-label">Escalation Timeline</div>
       <div class="tl">
         <div class="tl-item"><div class="tl-dot" style="background:#3a4257"></div>
@@ -928,8 +947,8 @@
         </div>
       </div>
     </div>
-  </div>
 
+  </div>
 </div>
 
 <script>
@@ -1665,9 +1684,9 @@ const LTV_CHANNELS = [
   { handle: '@SkyNews',          name: 'Sky News',     fallback: 'YDvsBbKfLPA' },
 ];
 
-let ltvOrder = [0, 1, 2];
+let ltvOrder = [1, 0, 2];
 let ltvVideoIds = LTV_CHANNELS.map(c => c.fallback);
-let ltvMuted = true;
+let ltvMuted = false;
 let ltvPrimaryPlayer = null;
 let ltvThumbPlayers = [null, null];
 
@@ -1677,7 +1696,7 @@ window.onYouTubeIframeAPIReady = function() {
   ltvPrimaryPlayer = new YT.Player('ltv-player-primary', {
     videoId: ltvVideoIds[ltvOrder[0]],
     host: 'https://www.youtube-nocookie.com',
-    playerVars: { autoplay:1, mute:1, controls:0, rel:0, modestbranding:1, playsinline:1, enablejsapi:1 },
+    playerVars: { autoplay:1, mute:0, controls:0, rel:0, modestbranding:1, playsinline:1, enablejsapi:1 },
     events: {
       onReady: function() { if (loadingEl) loadingEl.style.display = 'none'; },
       onError: function() { if (loadingEl) loadingEl.querySelector('span').textContent = 'Stream unavailable'; }
