@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/prices", "destination": "/api/prices" },
-    { "source": "/api/rss", "destination": "/api/rss" }
+    { "source": "/api/rss", "destination": "/api/rss" },
+    { "source": "/api/youtube-live", "destination": "/api/youtube-live" }
   ]
 }

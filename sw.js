@@ -1,4 +1,4 @@
-const CACHE = 'hormuz-v2';
+const CACHE = 'hormuz-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   // Network-first for API/RSS calls, cache-first for static assets
-  if (e.request.url.includes('api.') || e.request.url.includes('rss') || e.request.url.includes('query')) {
+  if (e.request.url.includes('/api/') || e.request.url.includes('api.') || e.request.url.includes('rss') || e.request.url.includes('query') || e.request.url.includes('youtube')) {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
   } else {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
